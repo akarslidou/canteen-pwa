@@ -1,0 +1,355 @@
+/* 1. VARIABLES & GLOBAL RESET */
+:root {
+  --circle-size: clamp(44px, 11vw, 64px);
+  --gap-size: clamp(8px, 2vw, 16px);
+  --SMOOTH-CURVE: cubic-bezier(0.4, 0, 0.2, 1);
+  --POP-CURVE: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+* { 
+  box-sizing: border-box; 
+  font-family: 'Futura', 'Futura-Medium', 'Century Gothic', 'Avant Garde', sans-serif;
+  user-select: none; 
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; 
+}
+
+html { min-width: 320px; }
+body { background: #f4f6f9; margin: 0; padding: 0; color: #2c3e50; overflow-x: hidden; }
+
+#headerUniversityTitle, #headerCanteenTitle, .inline-dropdown-item, .menu-title {
+  font-family: 'PT Serif', 'Georgia', serif; 
+  font-style: italic;
+}
+
+/* 2. LAYOUT & CONTAINERS */
+.app-container {
+  width: 100%; max-width: 1200px; margin: 10px auto; padding: 0 clamp(12px, 2vw, 24px); 
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+@media (min-width: 992px) {
+  .app-container { display: grid; grid-template-columns: 1fr 380px; align-items: start; gap: 32px; }
+}
+
+.main-card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); width: 100%; }
+.menu-title { font-weight: 700; font-size: clamp(20px, 4vw, 32px); margin-bottom: 12px; line-height: 1.2; }
+
+/* 3. HEADER & NAVIGATION */
+header {
+  background: #9adbb8; color: black; padding: 12px 20px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.header-titles { display: flex; justify-content: center; align-items: center; flex-grow: 1; max-width: 85%; }
+.title-wrapper { padding: 10px 0; display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; gap: 8px; }
+#headerUniversityTitle { font-weight: 700; color: #000000; margin: 0; font-size: clamp(22px, 4.5vw, 36px); letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; line-height: 1.2; }
+.canteen-dropdown-container { width: 85%; position: relative; display: inline-flex; flex-direction: column; align-items: center; max-width: 320px; }
+.canteen-selector-trigger { display: inline-flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 8px 14px; background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(0, 0, 0, 0.08); outline: none; cursor: pointer; border-radius: 8px; transition: all 0.25s var(--SMOOTH-CURVE); position: relative; z-index: 101; }
+.canteen-selector-trigger:hover { background: rgba(255, 255, 255, 0.45); }
+.canteen-selector-trigger.aktiv { background: white !important; border-color: #e2e8f0; border-bottom-color: transparent; border-radius: 8px 8px 0 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.03); }
+#headerCanteenTitle { font-weight: 700; color: #000000; font-size: clamp(13px, 2.2vw, 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dropdown-arrow { font-size: 11px; color: #000000; opacity: 0.8; transition: transform 0.25s var(--SMOOTH-CURVE); }
+.canteen-selector-trigger.aktiv .dropdown-arrow { transform: rotate(180deg); }
+.inline-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 0 0 8px 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: none; z-index: 300; padding: 4px 0; border: 1px solid #e2e8f0; border-top: none; }
+.inline-dropdown.offen { display: block; }
+.inline-dropdown-item { padding: 12px 16px; font-size: clamp(13px, 1.8vw, 15px); font-weight: 700; color: #333333; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.2s, color 0.2s; position: relative; z-index: 102; }
+.inline-dropdown-item:hover { background: #f4f6f9; color: #005a9c; }
+.menu-btn { background: none; border: none; color: black; font-size: 26px; cursor: pointer; display: flex; align-items: center; outline: none; }
+.header-spacer { width: 26px; }
+
+/* 4. FILTER SYSTEM */
+.filter-bar { display: flex; justify-content: center; gap: 12px; margin-top: 4px; margin-bottom: 24px; position: relative; z-index: 110; }
+.filter-dropdown-container { position: relative; flex: 1; max-width: 280px; }
+.filter-btn { width: 100%; padding: 10px 14px; background: #ffffff; border: 1px solid #1a1a1a; border-radius: 6px; font-size: 14px; font-weight: 600; text-align: left; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: #1a1a1a; transition: background 0.2s; }
+.filter-btn:hover { background: #f8fafc; }
+.filter-arrow { transition: transform 0.28s var(--SMOOTH-CURVE); display: inline-block; }
+.filter-dropdown-container.offen .filter-arrow { transform: rotate(180deg); }
+.dropdown-content { position: absolute; top: 105%; left: 0; width: 100%; background: #ffffff; border: 1px solid #1a1a1a; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); display: none; padding: 14px; z-index: 120; }
+.filter-dropdown-container.offen .dropdown-content { display: block; }
+.dropdown-content.wide-panel { width: clamp(290px, 85vw, 420px); }
+.filter-grid-section { margin-bottom: 12px; }
+.filter-grid-section-plain { display: flex; flex-direction: column; gap: 12px; }
+.filter-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: #2c3e50; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+.filter-options-layout { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.filter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: #1a1a1a; }
+.filter-icon { height: 16px; width: auto; object-fit: contain; flex-shrink: 0; }
+.filter-label input { cursor: pointer; }
+.filter-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.btn-apply-filter { width: 100%; padding: 8px; background: #000000; color: #ffffff; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-reset-filter { width: 100%; padding: 6px; background: transparent; color: #7f8c8d; border: none; font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+/* 5. CAROUSEL */
+.carousel-wrapper { display: flex; align-items: center; justify-content: center; gap: clamp(12px, 3.5vw, 24px); margin: 16px 0 28px 0; width: 100%; }
+.carousel-view-window { width: calc(5 * var(--circle-size) + 4 * var(--gap-size) + 16px); max-width: 100%; overflow: hidden; }
+#dayCarousel { display: flex; align-items: center; justify-content: flex-start; overflow: hidden; gap: var(--gap-size); padding: 12px 8px; scroll-behavior: smooth; width: 100%; }
+#dayCarousel::-webkit-scrollbar { display: none; } 
+.tag-button { flex: 0 0 var(--circle-size); width: var(--circle-size); height: var(--circle-size); border-radius: 50%; border: 1px solid #1a1a1a; background: transparent; color: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background-color 0.28s var(--SMOOTH-CURVE), color 0.28s var(--SMOOTH-CURVE), border-color 0.28s var(--SMOOTH-CURVE), transform 0.35s var(--POP-CURVE), box-shadow 0.35s var(--POP-CURVE); transform: scale(1) translateZ(0); backface-visibility: hidden; white-space: nowrap; overflow: hidden; padding: 4px; }
+.tag-button .day-name { font-size: clamp(11px, 1.4vw, 15px); font-weight: 700; text-transform: uppercase; }
+.tag-button .day-date { font-size: clamp(8px, 1.1vw, 11px); opacity: 0.7; margin-top: 1px; }
+.tag-button.tag-aktiv { background: #000000; color: #ffffff; border-color: #000000; transform: scale(1.08) translateZ(0); box-shadow: 0 6px 16px rgba(0,0,0,0.16); }
+.scroll-arrow { background: #000000; border: none; border-radius: 8px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); flex-shrink: 0; transition: background-color 0.25s var(--SMOOTH-CURVE), transform 0.25s var(--SMOOTH-CURVE); }
+.scroll-arrow:hover { transform: scale(1.04); }
+.selected-day-title { font-weight: 700; font-size: clamp(17px, 3.5vw, 26px); margin: 0 0 16px 0; font-style: italic; line-height: 1.2; }
+
+/* 6. MEALS */
+#mealsList { transition: opacity 0.22s var(--SMOOTH-CURVE); }
+#mealsList.state-loading { opacity: 0.35; pointer-events: none; }
+
+.gericht-karte { 
+  background: #ffffff; 
+  padding: 16px; 
+  margin-bottom: 12px; 
+  border-radius: 10px; 
+  border: 1px solid #e9ecef; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.01); 
+  position: relative; 
+  transition: transform 0.25s var(--SMOOTH-CURVE), box-shadow 0.25s var(--SMOOTH-CURVE); 
+}
+.gericht-karte:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.04); }
+
+.gericht-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 4px; }
+.gericht-kategorie { font-size: clamp(10px, 1.3vw, 12px); font-weight: 600; color: #7f8c8d; letter-spacing: 1px; text-transform: uppercase; }
+.gericht-preis { color: #000000; font-size: clamp(15px, 2.2vw, 19px); font-weight: 600; white-space: nowrap; letter-spacing: -0.3px; }
+.gericht-name { font-size: clamp(14px, 2vw, 17px); color: #000000; line-height: 1.4; font-weight: 500; flex-grow: 1; }
+.gericht-name img, .diet-icon { height: 18px !important; width: auto !important; vertical-align: middle; margin-right: 6px; margin-bottom: 2px; }
+
+/* 🌟 NEU: Minimalistische & Edle Allergen-Anzeige (Analog zum Screenshot) */
+.meal-notes { 
+  font-size: clamp(11px, 1.4vw, 13px); 
+  color: #555555; 
+  line-height: 1.5; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 3px; 
+  padding-right: 40px; /* Platzhalter, damit Text nicht in den Preis läuft */
+  
+  /* Sanfte Dropdown-Animation */
+  max-height: 0; 
+  overflow: hidden; 
+  opacity: 0; 
+  transition: max-height 0.3s var(--SMOOTH-CURVE), opacity 0.25s var(--SMOOTH-CURVE), margin-top 0.2s; 
+}
+.meal-notes.offen { 
+  max-height: 150px; 
+  opacity: 1; 
+  margin-top: 10px; 
+}
+.notes-line { margin: 0; font-weight: 400; }
+.notes-line b { color: #2c3e50; font-weight: 600; }
+
+/* Interaktive Elemente */
+.preis-container { display: flex; flex-direction: column; align-items: center; min-width: 65px; text-align: right; }
+.toggle-details-btn { background: none; border: none; cursor: pointer; display: block; margin: 4px auto 0 auto; font-size: 13px; color: #000000; transition: transform 0.28s var(--SMOOTH-CURVE), color 0.2s; padding: 4px; }
+.toggle-details-btn:hover { color: #000000; }
+.toggle-details-btn.offen { transform: rotate(180deg); color: #000000; }
+
+/* 7. SIDEBAR & OVERLAYS */
+.sidebar { position: fixed; top: 0; left: -300px; width: 300px; height: 100%; background: white; box-shadow: 4px 0 15px rgba(0,0,0,0.1); z-index: 500; transition: left 0.3s var(--SMOOTH-CURVE); padding: 24px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+.sidebar.offen { left: 0; }
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #005a9c; padding-bottom: 12px; margin-bottom: 5px; }
+.sidebar-header h3 { margin: 0; color: #005a9c; font-size: clamp(16px, 2.2vw, 20px); font-weight: 600; letter-spacing: -0.3px; }
+.close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; outline: none; }
+.sidebar-filter-title { font-size: clamp(11px, 1.5vw, 13px); font-weight: 600; color: #2c3e50; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: clamp(13px, 1.8vw, 15px); width: 100%; background: #ffffff; color: #2c3e50; outline: none; font-weight: 500; transition: border-color 0.2s; margin-bottom: 5px; }
+.settings-box { background: #ffffff; border: none; padding: 0; }
+.overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 400; display: none; }
+.overlay.offen { display: block; }
+.dropdown-closer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 150; display: none; background: transparent; }
+.dropdown-closer.offen { display: block; }
+
+/* 8. INFO SIDEBAR (STUWE INFOBOXES) */
+.info-sidebar { display: flex; flex-direction: column; gap: 24px; }
+.info-card h2 { font-size: 1.3rem; font-weight: 700; color: #000000; margin-bottom: 12px; }
+.info-sub { font-size: 0.95rem; color: #333; margin-bottom: 16px; }
+.alert-box { background-color: #FFF5F2; border: none; padding: 24px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.alert-icon { width: 40px; height: 40px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: bold; }
+.alert-box p { color: #A94432; font-size: 0.85rem; font-weight: 700; line-height: 1.5; margin: 0; }
+.legend-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.9rem; font-weight: 700; }
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-item img { width: 18px; height: 18px; object-fit: contain; }
+.price-info-text { font-size: 0.9rem; line-height: 1.5; color: #222; }
+
+
+/* 9. INFO-BOX */
+.canteen-info-box {
+  background-color: #8cdcb4; /* Das originale Stuwe-Mintgrün */
+  color: #1a1a1a;
+  padding: 40px 20px;
+  margin-top: 50px;
+  width: 100%;
+}
+
+.info-container-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: space-between;
+}
+
+.info-map-side {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Etwas mehr Abstand zum Button */
+  align-items: center; /* Zentriert Bild und Button */
+}
+
+#map {
+    height: 250px; 
+    width: 100%;
+    z-index: 1; /* Damit sie nicht von anderen Elementen überlagert wird */
+}
+
+/* Konsistenter Bild-Container */
+.map-image-container {
+  width: 100%;
+  max-width: 360px; /* Begrenzt die Breite für Konsistenz */
+  height: 160px; /* Feste Höhe */
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+  overflow: hidden; /* Schneidet Überstände des Bildes ab */
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.map-static-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Sorgt dafür, dass das Bild den Container füllt ohne Verzerrung */
+}
+
+.btn-map-action {
+  background: #000000;
+  color: #ffffff;
+  border: none; /* Kein Standard-Button-Rahmen */
+  text-decoration: none;
+  text-align: center;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  width: auto; /* Button wird nur so breit wie der Text */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.btn-map-action:hover {
+  background: #222222;
+}
+
+.btn-map-action:active {
+  transform: translateY(1px); /* Kleiner Klick-Effekt */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* Unveränderte Text-Styles */
+.info-text-side { flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 24px; }
+.info-block h3 { margin: 0 0 6px 0; font-size: 14px; letter-spacing: 0.5px; font-weight: 800; }
+.info-block p { margin: 0; font-size: 15px; color: #1a1a1a; }
+
+/* Die Puls-Animation */
+@keyframes mapPulse {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* 10. FOOTER */
+.main-site-footer {
+  background-color: #111111;
+  color: #a0aec0;
+  padding: 40px 20px 20px 20px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.footer-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 30px;
+}
+
+.footer-column {
+  flex: 1;
+  min-width: 200px;
+}
+
+.footer-column h4 {
+  color: #ffffff;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.footer-column p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.footer-column a {
+  color: #8cdcb4;
+  text-decoration: none;
+}
+
+.footer-copyright {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #718096;
+}
+
+/* --- HARDWARE BUTTON GRID --- */
+/* --- HARDWARE LISTE (statt Grid) --- */
+.hw-grid {
+  display: flex;
+  flex-direction: column; /* Elemente untereinander */
+  gap: 10px;              /* Abstand zwischen den Buttons */
+}
+
+.hw-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;          /* Flexbox für Anordnung innerhalb des Buttons */
+  align-items: center;    /* Vertikal zentriert */
+  gap: 15px;              /* Abstand zwischen Icon, Text und Daten */
+  cursor: pointer;
+  transition: all 0.2s var(--SMOOTH-CURVE);
+  width: 100%;            /* Volle Breite */
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.hw-btn:hover {
+  background: #e2e8f0;
+}
+
+/* Icon links */
+.hw-icon { font-size: 20px; }
+
+/* Text und Daten rechts daneben */
+.hw-label { font-size: 14px; font-weight: 700; color: #1a1a1a; flex-grow: 1; }
+
+/* Zustand, wenn erfolgreich */
+.hw-btn.success {
+  background: #d1fae5;
+  border-color: #34d399;
+}
+
+
+.hw-icon { font-size: 22px; margin-bottom: 4px; }
+.hw-label { font-size: 11px; font-weight: 700; color: #1a1a1a; }
+.hw-data { 
+  font-size: 9px; 
+  color: #475569; 
+  margin-top: 4px; 
+  text-align: center; 
+  line-height: 1.2;
+}

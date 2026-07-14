@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Deine Mensa</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+<div id="cameraOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; justify-content:center; align-items:center;">
+    
+    <button onclick="HardwareController.stopCamera()" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.2); border:none; color:white; font-size:24px; width:45px; height:45px; border-radius:50%; cursor:pointer;">
+        ✕
+    </button>
+
+    <video id="cameraStream" autoplay playsinline style="width:90%; max-width:500px; border-radius:15px; border: 2px solid white;"></video>
+    
+    <div style="color:white; margin-top:20px; font-family:sans-serif;">
+        Kamera aktiv: QR-Code in den Rahmen halten
+    </div>
+</div>
+
+<div id="dropdownCloser" class="dropdown-closer"></div>
+<div id="menuOverlay" class="overlay"></div>
+
+<header>
+  <button class="menu-btn" id="menuOpenTrigger">☰</button>
+  <div class="header-titles">
+    <div class="title-wrapper">
+      <h1 id="headerUniversityTitle">Uni Tübingen</h1>
+      <div class="canteen-dropdown-container">
+        <button id="headerCanteenTrigger" class="canteen-selector-trigger">
+          <span id="headerCanteenTitle">Mensa Wilhelmstraße</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        <div id="inlineDropdown" class="inline-dropdown"></div>
+      </div>
+    </div>
+  </div>
+  <div class="header-spacer"></div> 
+</header>
+
+<div id="appSidebar" class="sidebar">
+  <div class="sidebar-header">
+    <h3>Weiteres</h3>
+    <button class="close-btn" id="menuCloseTrigger">✕</button>
+  </div>
+  
+  <div class="sidebar-section settings-box" style="padding: 15px;">
+    <div class="sidebar-filter-title">📍 Region / Universität</div>
+    <select id="citySelect" style="width: 100%; padding: 8px;">
+      <option value="tuebingen">Uni Tübingen</option>
+      <option value="uni_stuttgart">Uni Stuttgart</option>
+      <option value="hohenheim">Uni Hohenheim</option>
+      <option value="esslingen">Hochschule Esslingen</option>
+      <option value="nuertingen">Hochschule Nürtingen</option>
+      <option value="karlsruhe">KIT / Karlsruhe</option>
+    </select>
+  </div>
+
+  <hr style="margin: 5px 0;">
+
+<div class="sidebar-section settings-box" style="padding: 15px;">
+  <div class="sidebar-filter-title" style="margin-bottom: 15px; font-weight: bold;">🛠 Hardware-Tests</div>
+  
+  <div class="hw-grid">
+    <button id="btnCamera" class="hw-btn" onclick="HardwareController.checkCamera()">
+      <span class="hw-icon">📷</span>
+      <span class="hw-label">Kamera</span>
+    </button>
+    
+    <button id="btnBluetooth" class="hw-btn" onclick="HardwareController.checkBluetooth()">
+      <span class="hw-icon">🔵</span>
+      <span class="hw-label">Bluetooth</span>
+    </button>
+    
+    <button id="btnGPS" class="hw-btn" onclick="HardwareController.checkGPS()">
+      <span class="hw-icon">📍</span>
+      <span class="hw-label">GPS</span>
+  </div>
+</div>
+
+</div> <div class="app-container">
+  
+  <main class="main-card">
+    <div class="map-link-container">
+      <div class="menu-title">Speiseplan</div>
+    </div>
+
+    <div class="carousel-wrapper">
+      <button class="scroll-arrow" id="carouselPrev">❮</button>
+      <div class="carousel-view-window">
+        <div id="dayCarousel"></div>
+      </div>
+      <button class="scroll-arrow" id="carouselNext">❯</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-dropdown-container" id="categoryDropdown">
+        <button class="filter-btn" onclick="toggleDropdown('categoryDropdown')">
+          <span>Filter</span>
+          <span class="filter-arrow">▼</span>
+        </button>
+        <div class="dropdown-content wide-panel">
+          <div class="filter-grid-section">
+            <div class="filter-section-title">Fleisch</div>
+            <div class="filter-options-layout">
+              <label class="filter-label"><input type="checkbox" value="fisch" class="filter-checkbox"> <img src="images/icon_fisch.png.webp" class="filter-icon" alt=""> [F] Fisch</label>
+              <label class="filter-label"><input type="checkbox" value="geflügel" class="filter-checkbox"> <img src="images/icon_gefluegel.png.webp" class="filter-icon" alt=""> [G] Geflügel</label>
+              <label class="filter-label"><input type="checkbox" value="kalb" class="filter-checkbox"> <img src="images/icon_kalb.png.webp" class="filter-icon" alt=""> [K] Kalb</label>
+              <label class="filter-label"><input type="checkbox" value="lamm" class="filter-checkbox"> <img src="images/icon_lamm.png.webp" class="filter-icon" alt=""> [L] Lamm</label>
+              <label class="filter-label"><input type="checkbox" value="rind" class="filter-checkbox"> <img src="images/icon_rind.png.webp" class="filter-icon" alt=""> [R] Rind</label>
+              <label class="filter-label"><input type="checkbox" value="schwein" class="filter-checkbox"> <img src="images/icon_schwein.png.webp" class="filter-icon" alt=""> [S] Schwein</label>
+              <label class="filter-label"><input type="checkbox" value="wild" class="filter-checkbox"> <img src="images/icon_wild.png.webp" class="filter-icon" alt=""> [W] Wild</label>
+            </div>
+          </div>
+          <div class="filter-grid-section">
+            <div class="filter-section-title">Nur anzeigen</div>
+            <div class="filter-options-layout">
+              <label class="filter-label"><input type="checkbox" value="vegetarisch" class="filter-checkbox"> <img src="images/icon_vegetarisch.png.webp" class="filter-icon" alt=""> [V] vegetarisch</label>
+              <label class="filter-label"><input type="checkbox" value="vegan" class="filter-checkbox"> <img src="images/icon_vegan.png.webp" class="filter-icon" alt=""> [vegan] vegan</label>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-apply-filter" onclick="applyFilters()">Filter anwenden →</button>
+            <button class="btn-reset-filter" onclick="resetFilters()">Filter zurücksetzen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-dropdown-container" id="priceDropdown">
+        <button class="filter-btn" onclick="toggleDropdown('priceDropdown')">
+          <span>Preis</span>
+          <span class="filter-arrow">▼</span>
+        </button>
+        <div class="dropdown-content">
+          <div class="filter-grid-section-plain">
+            <label class="filter-label">
+              <input type="radio" name="priceRadio" value="students" checked onchange="changePriceType('students')"> Studierende
+            </label>
+            <label class="filter-label">
+              <input type="radio" name="priceRadio" value="employees" onchange="changePriceType('employees')"> Beschäftigte / Gäste
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="selectedDayTitle" class="selected-day-title"></div>
+    <div id="status"></div>
+    <div id="mealsList"></div>
+  </main>
+
+  <aside class="info-sidebar">
+    
+    <div class="info-card">
+      <h2>Allgemeine Informationen</h2>
+      <p class="info-sub">Kurzfristige Änderungen in den Speiseplänen sind vorbehalten.</p>
+      
+      <div class="alert-box">
+        <div class="alert-icon">i</div>
+        <p>EINE TAGESAKTUELLE KENNZEICHNUNG FÜR ALLERGENE UND ZUSATZSTOFFE FINDET IHR NUR AN DEN AUSGABEBEREICHEN DER MENSEN AUF MONITOREN UND/ODER AUSHÄNGEN.</p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2>Schlüssel</h2>
+      <div class="legend-grid">
+        <div class="legend-item"><img src="images/icon_fisch.png.webp" alt=""> <span>[F] Fisch</span></div>
+        <div class="legend-item"><img src="images/icon_gefluegel.png.webp" alt=""> <span>[G] Geflügel</span></div>
+        <div class="legend-item"><img src="images/icon_kalb.png.webp" alt=""> <span>[K] Kalb</span></div>
+        <div class="legend-item"><img src="images/icon_lamm.png.webp" alt=""> <span>[L] Lamm</span></div>
+        <div class="legend-item"><img src="images/icon_rind.png.webp" alt=""> <span>[R] Rind</span></div>
+        <div class="legend-item"><img src="images/icon_schwein.png.webp" alt=""> <span>[S] Schwein</span></div>
+        <div class="legend-item"><img src="images/icon_wild.png.webp" alt=""> <span>[W] Wild</span></div>
+        <div class="legend-item"><img src="images/icon_vegetarisch.png.webp" alt=""> <span>[V] vegetarisch</span></div>
+        <div class="legend-item"><img src="images/icon_vegan.png.webp" alt=""> <span>[vegan] vegan</span></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2>Preisinformation für Unimitarbeiter</h2>
+      <p class="price-info-text">
+        Die Essenspreise für Mitarbeiter ergeben sich aus dem Gästepreis abzüglich des Arbeitgeberzuschusses (KAO). 
+        Dieser Zuschuss wird nur wirksam, wenn der Preis mindestens 4,60 EUR beträgt; der maximale Zuschuss beträgt 2,70 EUR.
+      </p>
+    </div>
+    
+  </aside>
+</div>
+
+<div class="canteen-info-box">
+  <div class="info-container-inner">
+    
+    <div class="info-map-side">
+      <div id="map" style="height: 250px; width: 100%; border-radius: 10px; margin-bottom: 10px;"></div>
+      <button id="infoMapButton" class="btn-map-action" onclick="">
+          Standort auf Karte zeigen ➔
+      </button>
+    </div>
+
+    <div class="info-text-side">
+      <div class="info-block">
+        <h3>🕒 ÖFFNUNGSZEITEN</h3>
+        <p id="infoHours">Wird geladen...</p>
+      </div>
+      
+      <div class="info-block">
+        <h3>🏠 <span id="infoCanteenName">MENSA</span></h3>
+        <p id="infoAddress">Wird geladen...</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="main-site-footer">
+  <div class="footer-inner">
+    <div class="footer-column">
+      <h4>Projekt-Demo</h4>
+      <p>Entwickelt von: <strong> Karslidou Anastasia </strong><br>
+      Matrikelnummer: 5774078 <br>
+      Studiengang: Medieninformatik B.Sc. <br>
+      Semester: Sommersemester 2026
+    </p>
+
+    </div>
+    <div class="footer-column">
+      <h4>Kontakt (Entwickler)</h4>
+      <p><a href="mailto:anastasia.karslidou@student.uni-tuebingen.de">anastasia.karslidou@student.uni-tuebingen.de</a></p>
+    </div>
+  </div>
+  <div class="footer-copyright">
+    <p>Copyright © 2026 Karslidou. Alle Rechte im Rahmen der Kriterien zur Leistungsbewertung vorbehalten.</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
