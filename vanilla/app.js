@@ -1,4 +1,6 @@
 const HardwareController = {
+  qrScanActive: false,
+
   // Camera check & stream initialization
   async checkCamera() {
     const video = document.getElementById('cameraStream');
@@ -11,36 +13,115 @@ const HardwareController = {
       video.srcObject = stream;
       btn.classList.add('success');
       
-      // TODO: Integrate scanner library (e.g., jsQR / html5-qrcode) for active frame decoding
-      console.log("Camera stream active, waiting for decoder interface...");
+      video.setAttribute("playsinline", true); // Required for iOS Safari
+      video.play();
+      
+      this.qrScanActive = true;
+      requestAnimationFrame(this.scanQRCode.bind(this));
     } catch (err) {
       alert("Camera access denied!");
     }
   },
 
-  // Web Bluetooth GATT connection demo
+  // Actively analyze video frames for QR codes using the jsQR library
+  scanQRCode() {
+    if (!this.qrScanActive) return;
+
+    const video = document.getElementById('cameraStream');
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      let canvas = document.getElementById('qrCanvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'qrCanvas';
+      }
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      if (typeof jsQR !== 'undefined') {
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+        
+        if (code) {
+          if (navigator.vibrate) navigator.vibrate(100);
+          alert("QR Code Detected: " + code.data);
+          this.stopCamera();
+          return;
+        }
+      } else {
+        console.warn("jsQR library is not loaded. Ensure the CDN script is placed in your HTML.");
+      }
+    }
+    requestAnimationFrame(this.scanQRCode.bind(this));
+  },
+
+  // Stop camera tracks and terminate QR processing
+  stopCamera() {
+    this.qrScanActive = false;
+    const video = document.getElementById('cameraStream');
+    const overlay = document.getElementById('cameraOverlay');
+    const btn = document.getElementById('btnCamera');
+    
+    if (video.srcObject) {
+        const tracks = video.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+    }
+    
+    overlay.style.display = 'none';
+    btn.classList.remove('success');  
+  },
+
+  // Bluetooth GATT connection check with fallback alert for iOS
   async checkBluetooth() {
     const btn = document.getElementById('btnBluetooth');
+    
+    if (!navigator.bluetooth) {
+      alert("Web Bluetooth is not supported on iOS Safari (iPhone). Please test using Chrome on Android or Desktop.");
+      return;
+    }
+
     try {
       const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
       const server = await device.gatt.connect();
+      
+      // 1. Turn button green
       btn.classList.add('success');
-      alert("Connected to: " + device.name);
-      // TODO: Implement GATT characteristic write/read protocol if required
+      
+      // 2. Show alert after rendering
+      setTimeout(() => {
+        alert("Connected to: " + device.name);
+        // 3. Remove green after user clicks "OK"
+        btn.classList.remove('success');
+      }, 100);
+
     } catch (err) {
       console.log("Bluetooth pairing cancelled");
     }
   },
 
-  // Geolocation API check
+  // Get user coordinates via Geolocation API
   checkGPS() {
     const btn = document.getElementById('btnGPS');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         const lat = pos.coords.latitude.toFixed(4);
         const lng = pos.coords.longitude.toFixed(4);
+        
+        // 1. Turn button green
         btn.classList.add('success');
-        alert(`Location lock acquired: ${lat}, ${lng}`);
+        
+        // 2. Wait a tiny bit so the green renders, then show alert
+        setTimeout(() => {
+          alert(`Location lock acquired: ${lat}, ${lng}`);
+          // 3. Remove green immediately after user clicks "OK"
+          btn.classList.remove('success');
+        }, 100);
+
       }, (err) => {
         alert("Location data unavailable.");
       });
