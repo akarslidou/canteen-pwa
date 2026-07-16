@@ -133,6 +133,8 @@ function getStuweIconHtml(meal) {
 let meals = [];
 let isLoading = true;
 let isClosed = false;
+let isOfflineError = false; 
+let hasNoData = false;       
 let availableDays = [];
 let selectedDate = '';
 let canteenId = '';
@@ -447,17 +449,51 @@ function updateCanteenDropdown(uniKey) {
 async function resetMealsAndReload() {
   meals = [];
   isClosed = false;
+  isOfflineError = false;
+  hasNoData = false;
   await fetchAvailableDaysFromAPI();
   renderDays(); 
   await loadMealsForDate(selectedDate);
   prefetchUpcomingDays();
 }
 
+// Generiert exakt die nächsten 10 Wochentage (ohne Samstage und Sonntage) ab heute
+function getTwoWeeksDays() {
+  const days = [];
+  let current = new Date();
+  
+  let count = 0;
+  // Wir wollen genau 10 gültige Wochentage (Mo-Fr) im Karussell
+  while (count < 10) {
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Weder Sonntag (0) noch Samstag (6)
+      const yyyy = current.getFullYear();
+      const mm = String(current.getMonth() + 1).padStart(2, '0');
+      const dd = String(current.getDate()).padStart(2, '0');
+      days.push({ 
+        date: `${yyyy}-${mm}-${dd}`,
+        closed: false // Standardmäßig offen, API-Daten überschreiben das bei Bedarf
+      });
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return days; 
+}
+
 // Fetch and filter operating days from OpenMensa REST API
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
+  
+  availableDays = getTwoWeeksDays();
+  if (!selectedDate || !availableDays.some(d => d.date === selectedDate)) {
+    selectedDate = availableDays[0].date;
+  }
+
   try {
     isLoading = true;
+    isOfflineError = false;
+    hasNoData = false;
     renderStatus();
     
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
@@ -465,24 +501,17 @@ async function fetchAvailableDaysFromAPI() {
     if (!res.ok) throw new Error();
     
     const daysData = await res.json();
-    // Exclude closed days and Sundays
-    const openDaysWithoutSundays = daysData.filter(day => {
-      if (day.closed === true) return false;
-      return new Date(day.date).getDay() !== 0; 
-    });
     
-    if (openDaysWithoutSundays.length > 0) {
-      availableDays = openDaysWithoutSundays;
-      if (!selectedDate || !availableDays.some(d => d.date === selectedDate)) {
-        selectedDate = availableDays[0].date;
+    availableDays.forEach(day => {
+      const apiDay = daysData.find(d => d.date === day.date);
+      if (apiDay) {
+        day.closed = (apiDay.closed === true);
       }
-    } else {
-      availableDays = [];
-      isClosed = true;
-    }
-  } catch {
-    availableDays = [];
-    isClosed = true;
+    });
+
+  } catch (err) {
+    console.warn("[Offline] Using generated fallback weekdays for the carousel.");
+    isOfflineError = true;
   }
 }
 
@@ -491,17 +520,38 @@ async function loadMealsForDate(date) {
   try {
     isLoading = true;
     isClosed = false;
+    isOfflineError = false;
+    hasNoData = false;
     renderStatus();
 
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
-    if (!res.ok) { meals = []; isClosed = true; return; }
+    
+    if (!res.ok) { 
+      meals = []; 
+      
+      const dayMeta = availableDays.find(d => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
+        hasNoData = true;
+      }
+      return; 
+    }
     
     meals = await res.json();
-    if (meals.length === 0) isClosed = true;
+    
+    if (meals.length === 0) {
+      const dayMeta = availableDays.find(d => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
+        hasNoData = true;
+      }
+    }
   } catch { 
     meals = []; 
-    isClosed = true; 
+    isOfflineError = true; 
   } finally { 
     isLoading = false; 
     render(); 
@@ -564,7 +614,7 @@ function renderSelectedDayTitle() {
 
 function renderMeals() {
   nodes.mealsList.innerHTML = '';
-  if (isClosed) return;
+  if (isClosed || isOfflineError && meals.length === 0 || hasNoData) return;
 
   // Client-side fuzzy keyword filtering
   const filteredMeals = meals.filter(meal => {
@@ -635,12 +685,58 @@ function renderStatus() {
   if (isLoading) {
     nodes.mealsList.classList.add('state-loading');
     nodes.statusDiv.innerHTML = ''; 
-  } else if (isClosed || availableDays.length === 0) {
-    nodes.mealsList.classList.remove('state-loading');
-    nodes.statusDiv.innerHTML = '<p style="color: #c53030; text-align:center; font-weight:500; margin-top:20px;">Aktuell sind keine geöffneten Tage für diese Mensa hinterlegt.</p>';
+    return;
+  }
+  
+  nodes.mealsList.classList.remove('state-loading');
+  
+  if (isOfflineError) {
+    if (meals.length === 0) {
+      nodes.statusDiv.innerHTML = `
+        <div class="offline-warning" style="text-align:center; padding: 24px; font-family:Futura,sans-serif; background: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; margin: 20px auto; max-width: 90%;">
+          <p style="color: #dd6b20; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">
+            ⚠️ Keine Internetverbindung
+          </p>
+          <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">
+            Für dieses Datum wurden offline noch keine Daten gespeichert. Bitte gehe online, um den Speiseplan zu laden.
+          </p>
+        </div>
+      `;
+      nodes.mealsList.innerHTML = '';
+    } else {
+      nodes.statusDiv.innerHTML = `
+        <div style="text-align:center; margin-bottom: 12px;">
+          <span style="background: #edf2f7; color: #4a5568; font-size: 0.8rem; padding: 4px 12px; border-radius: 12px; font-weight: 500; font-family: Futura, sans-serif;">
+            ⚡ Offline-Modus (gespeicherte Daten)
+          </span>
+        </div>
+      `;
+    }
+  } else if (isClosed) {
+    nodes.statusDiv.innerHTML = `
+      <div style="text-align:center; padding: 24px; font-family:Futura,sans-serif;">
+        <p style="color: #c53030; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">
+          Geschlossen ❌
+        </p>
+        <p style="color: #718096; font-size: 0.9rem;">
+          Diese Mensa hat an dem ausgewählten Tag geschlossen.
+        </p>
+      </div>
+    `;
+    nodes.mealsList.innerHTML = '';
+  } else if (hasNoData) {
+    nodes.statusDiv.innerHTML = `
+      <div style="text-align:center; padding: 24px; font-family:Futura,sans-serif; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px auto; max-width: 90%;">
+        <p style="color: #4a5568; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">
+          Kein Speiseplan verfügbar
+        </p>
+        <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">
+          Für diesen Tag wurden vom Studierendenwerk noch keine Gerichte veröffentlicht.
+        </p>
+      </div>
+    `;
     nodes.mealsList.innerHTML = '';
   } else {
-    nodes.mealsList.classList.remove('state-loading');
     nodes.statusDiv.innerHTML = '';
   }
 }
@@ -655,7 +751,6 @@ function toggleAllergene(id, btn) {
 function prefetchUpcomingDays() {
   if (!availableDays || availableDays.length <= 1 || !canteenId) return;
 
-  // fetch upcoming day expect the current one
   const daysToPrefetch = availableDays.filter(day => day.date !== selectedDate);
 
   console.log(`[Prefetch] Start background download for ${daysToPrefetch.length} days...`);
@@ -666,7 +761,7 @@ function prefetchUpcomingDays() {
     fetch(url)
       .then(res => {
         if (res.ok) {
-          console.log(`[Prefetch] succefully saved in cache: ${day.date}`);
+          console.log(`[Prefetch] successfully saved in cache: ${day.date}`);
         }
       })
       .catch(err => {
