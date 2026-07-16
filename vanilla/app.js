@@ -450,6 +450,7 @@ async function resetMealsAndReload() {
   await fetchAvailableDaysFromAPI();
   renderDays(); 
   await loadMealsForDate(selectedDate);
+  prefetchUpcomingDays();
 }
 
 // Fetch and filter operating days from OpenMensa REST API
@@ -648,6 +649,30 @@ function toggleAllergene(id, btn) {
   const liste = document.getElementById(id);
   liste.classList.toggle('offen');
   btn.classList.toggle('offen');
+}
+
+// Prefetch all other available days in the background to store them in Cache Storage
+function prefetchUpcomingDays() {
+  if (!availableDays || availableDays.length <= 1 || !canteenId) return;
+
+  // fetch upcoming day expect the current one
+  const daysToPrefetch = availableDays.filter(day => day.date !== selectedDate);
+
+  console.log(`[Prefetch] Start background download for ${daysToPrefetch.length} days...`);
+
+  daysToPrefetch.forEach(day => {
+    const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
+    
+    fetch(url)
+      .then(res => {
+        if (res.ok) {
+          console.log(`[Prefetch] succefully saved in cache: ${day.date}`);
+        }
+      })
+      .catch(err => {
+        console.warn(`[Prefetch] error for loading: ${day.date}:`, err);
+      });
+  });
 }
 
 function render() {
