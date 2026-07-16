@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Deine Mensa</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e293b">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -66,20 +68,30 @@
 <div class="sidebar-section settings-box" style="padding: 15px;">
   <div class="sidebar-filter-title" style="margin-bottom: 15px; font-weight: bold;">🛠 Hardware-Tests</div>
   
-  <div class="hw-grid">
+ <div class="hw-grid">
+  <!-- Camera Button -->
     <button id="btnCamera" class="hw-btn" onclick="HardwareController.checkCamera()">
       <span class="hw-icon">📷</span>
       <span class="hw-label">Kamera</span>
     </button>
     
+    <!-- Bluetooth Button -->
     <button id="btnBluetooth" class="hw-btn" onclick="HardwareController.checkBluetooth()">
       <span class="hw-icon">🔵</span>
       <span class="hw-label">Bluetooth</span>
     </button>
     
+    <!-- GPS Button -->
     <button id="btnGPS" class="hw-btn" onclick="HardwareController.checkGPS()">
       <span class="hw-icon">📍</span>
       <span class="hw-label">GPS</span>
+    </button>
+
+    <!-- NFC Button -->
+    <button id="btnNFC" class="hw-btn" onclick="HardwareController.checkNFC()">
+      <span class="hw-icon">🏷️</span>
+      <span class="hw-label">NFC</span>
+    </button>
   </div>
 </div>
 
@@ -239,5 +251,15 @@
 </footer>
 
 <script src="app.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registered successfully!', reg))
+        .catch(err => console.error('Service Worker registration failed:', err));
+    });
+  }
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 const HardwareController = {
-  // 1. KAMERA: QR-Code Scanner (Einfache Simulation)
+  // Camera check & stream initialization
   async checkCamera() {
     const video = document.getElementById('cameraStream');
     const overlay = document.getElementById('cameraOverlay');
@@ -11,28 +11,28 @@ const HardwareController = {
       video.srcObject = stream;
       btn.classList.add('success');
       
-      // Hier würde ein QR-Code Reader wie 'jsQR' oder 'html5-qrcode' kommen
-      console.log("Kamera aktiv, bereit für QR-Scan");
+      // TODO: Integrate scanner library (e.g., jsQR / html5-qrcode) for active frame decoding
+      console.log("Camera stream active, waiting for decoder interface...");
     } catch (err) {
-      alert("Kamera-Zugriff verweigert!");
+      alert("Camera access denied!");
     }
   },
 
-  // 2. BLUETOOTH: Nachrichten senden (Beispiel für Web Bluetooth)
+  // Web Bluetooth GATT connection demo
   async checkBluetooth() {
     const btn = document.getElementById('btnBluetooth');
     try {
       const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
       const server = await device.gatt.connect();
       btn.classList.add('success');
-      alert("Verbunden mit: " + device.name);
-      // Beispiel: Hier könntest du Daten an das Gerät senden
+      alert("Connected to: " + device.name);
+      // TODO: Implement GATT characteristic write/read protocol if required
     } catch (err) {
-      console.log("Bluetooth abgebrochen");
+      console.log("Bluetooth pairing cancelled");
     }
   },
 
-  // 3. GPS: Koordinaten direkt anzeigen
+  // Geolocation API check
   checkGPS() {
     const btn = document.getElementById('btnGPS');
     if (navigator.geolocation) {
@@ -40,19 +40,48 @@ const HardwareController = {
         const lat = pos.coords.latitude.toFixed(4);
         const lng = pos.coords.longitude.toFixed(4);
         btn.classList.add('success');
-        alert(`Aktueller Standort: ${lat}, ${lng}`);
+        alert(`Location lock acquired: ${lat}, ${lng}`);
       }, (err) => {
-        alert("Standort nicht verfügbar.");
+        alert("Location data unavailable.");
       });
     }
   },
 
+  // Web NFC Reader (Chrome on Android only)
+  async checkNFC() {
+    if (!('NDEFReader' in window)) {
+      alert("Web NFC not supported by this browser/OS. (Note: iOS Safari blocks Web NFC; test with Chrome on Android).");
+      return;
+    }
+
+    try {
+      const ndef = new NDEFReader();
+      alert("NFC polling active. Place an RFID/NFC tag (e.g., student ID, canteen card) against the back of your device.");
+      
+      await ndef.scan();
+      console.log("NFC scan session started successfully.");
+
+      ndef.addEventListener("readingerror", () => {
+        alert("NFC tag detected, but reading failed. Try again.");
+      });
+
+      ndef.addEventListener("reading", ({ message, serialNumber }) => {
+        alert(`NFC Read Success!\nCard Detected!\nSerial: ${serialNumber}`);
+        console.log(`NFC Tag UID: ${serialNumber}`);
+      });
+
+    } catch (error) {
+      console.error("NFC operation failed:", error);
+      alert(`NFC Error: ${error.message || error}`);
+    }
+  },
+
+  // Terminate active video tracks to release hardware locks
   stopCamera() {
     const video = document.getElementById('cameraStream');
     const overlay = document.getElementById('cameraOverlay');
     const btn = document.getElementById('btnCamera');
     
-    // Stoppt den Videostream
     if (video.srcObject) {
         const tracks = video.srcObject.getTracks();
         tracks.forEach(track => track.stop());
@@ -60,13 +89,11 @@ const HardwareController = {
     }
     
     overlay.style.display = 'none';
-    
-    // Status am Button zurücksetzen
     btn.classList.remove('success');  
   },
 };
 
-
+// Map STUWE keywords to local assets
 const STUWE_ICON_BASE = "images/"; 
 const stuweIconMap = {
   "empfehlung": "icon_empfehlungs_des_kuechenchefs.png.webp",
@@ -81,7 +108,7 @@ const stuweIconMap = {
   "wild": "icon_wild.png.webp"
 };
 
-// Generiert die Icons für die Gerichte
+// Parse meal attributes to append matching diet/allergen badges
 function getStuweIconHtml(meal) {
   if (!meal) return '';
 
@@ -102,7 +129,7 @@ function getStuweIconHtml(meal) {
   return foundIcons;
 }
 
-// Globale Variablen & State
+// Global State & Configuration
 let meals = [];
 let isLoading = true;
 let isClosed = false;
@@ -112,11 +139,11 @@ let canteenId = '';
 let currentUniKey = 'tuebingen';
 let activePriceType = 'students'; 
 let activeFilterKeywords = [];
-let nodes = {}; // 🛒 Jetzt sauber ganz oben deklariert!
+let nodes = {}; // Cached DOM references
 
 const API_BASE_URL = 'https://openmensa.org/api/v2/canteens/';
 
-// Die erweiterte Mensa-Liste mit echten Adressen und Zeiten
+// Canteen static dataset (coordinates, hours, and navigation endpoints)
 const universityCanteens = {
   tuebingen: [
     { 
@@ -251,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   setupInitialState();
   
+  // Close active dropdowns on backdrop click
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.filter-dropdown-container')) {
       document.querySelectorAll('.filter-dropdown-container').forEach(el => el.classList.remove('offen'));
@@ -260,19 +288,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let map = null;
 
+// Leaflet map setup and positioning
 function initMap(lat, lng, name) {
-    // Falls schon eine Karte da ist, löschen
     if (map) { map.remove(); }
 
-    // Karte initialisieren
     map = L.map('map').setView([lat, lng], 16);
 
-    // OpenStreetMap Layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Marker setzen
     L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup();
 }
 
@@ -418,6 +443,7 @@ function updateCanteenDropdown(uniKey) {
   nodes.inlineDropdown.appendChild(fragment);
 }
 
+// Clear state and rebuild dataset on user-driven canteen change
 async function resetMealsAndReload() {
   meals = [];
   isClosed = false;
@@ -426,6 +452,7 @@ async function resetMealsAndReload() {
   await loadMealsForDate(selectedDate);
 }
 
+// Fetch and filter operating days from OpenMensa REST API
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
   try {
@@ -437,6 +464,7 @@ async function fetchAvailableDaysFromAPI() {
     if (!res.ok) throw new Error();
     
     const daysData = await res.json();
+    // Exclude closed days and Sundays
     const openDaysWithoutSundays = daysData.filter(day => {
       if (day.closed === true) return false;
       return new Date(day.date).getDay() !== 0; 
@@ -513,6 +541,7 @@ function renderDays() {
   nodes.dayCarousel.appendChild(fragment);
 }
 
+// Convert ISO date (YYYY-MM-DD) to localized weekday string
 function renderSelectedDayTitle() {
   if (!selectedDate) {
     nodes.selectedDayTitle.textContent = '';
@@ -536,6 +565,7 @@ function renderMeals() {
   nodes.mealsList.innerHTML = '';
   if (isClosed) return;
 
+  // Client-side fuzzy keyword filtering
   const filteredMeals = meals.filter(meal => {
     if (activeFilterKeywords.length === 0) return true;
     const mealText = [meal.name, meal.category, ...(meal.notes || [])].join(' ').toLowerCase();
@@ -553,12 +583,14 @@ function renderMeals() {
     const div = document.createElement('div');
     div.className = 'gericht-karte';
     
+    // Resolve group price (Fallback to guest/others)
     const priceVal = activePriceType === 'students' 
       ? meal.prices.students 
       : (meal.prices.employees || meal.prices.others || meal.prices.pupils);
 
     const formattedPrice = priceVal ? `${priceVal.toFixed(2).replace('.', ',')} €` : 'N/A';
     
+    // Filter redundant diet labels from OpenMensa notes array
     const cleanNotes = (meal.notes || []).filter(note => {
       const n = note.toLowerCase();
       return !n.includes('[vegan]') && !n.includes('[v]') && !n.includes('vegetarisch');
@@ -569,6 +601,7 @@ function renderMeals() {
     let allergenHtml = '';
     let toggleBtn = '';
 
+    // Inject collapsible allergen drawer
     if (hasNotes) {
       const notesContent = cleanNotes.some(n => n.toLowerCase().includes('allergene'))
         ? cleanNotes.map(n => `<div class="notes-line">${n}</div>`).join('')

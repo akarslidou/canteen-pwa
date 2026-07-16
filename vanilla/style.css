@@ -91,6 +91,17 @@ header {
 .scroll-arrow:hover { transform: scale(1.04); }
 .selected-day-title { font-weight: 700; font-size: clamp(17px, 3.5vw, 26px); margin: 0 0 16px 0; font-style: italic; line-height: 1.2; }
 
+/* Mobile adaptation: Display exactly 4 elements */
+@media (max-width: 600px) {
+  :root {
+    --circle-size: clamp(52px, 18vw, 72px);
+    --gap-size: clamp(8px, 3vw, 12px);
+  }
+  .carousel-view-window { 
+    width: calc(4 * var(--circle-size) + 3 * var(--gap-size) + 16px); 
+  }
+}
+
 /* 6. MEALS */
 #mealsList { transition: opacity 0.22s var(--SMOOTH-CURVE); }
 #mealsList.state-loading { opacity: 0.35; pointer-events: none; }
@@ -113,7 +124,7 @@ header {
 .gericht-name { font-size: clamp(14px, 2vw, 17px); color: #000000; line-height: 1.4; font-weight: 500; flex-grow: 1; }
 .gericht-name img, .diet-icon { height: 18px !important; width: auto !important; vertical-align: middle; margin-right: 6px; margin-bottom: 2px; }
 
-/* 🌟 NEU: Minimalistische & Edle Allergen-Anzeige (Analog zum Screenshot) */
+/* Collapsible meal notes drawer */
 .meal-notes { 
   font-size: clamp(11px, 1.4vw, 13px); 
   color: #555555; 
@@ -121,9 +132,7 @@ header {
   display: flex; 
   flex-direction: column; 
   gap: 3px; 
-  padding-right: 40px; /* Platzhalter, damit Text nicht in den Preis läuft */
-  
-  /* Sanfte Dropdown-Animation */
+  padding-right: 40px; /* Prevent text overlap with price */
   max-height: 0; 
   overflow: hidden; 
   opacity: 0; 
@@ -137,7 +146,7 @@ header {
 .notes-line { margin: 0; font-weight: 400; }
 .notes-line b { color: #2c3e50; font-weight: 600; }
 
-/* Interaktive Elemente */
+/* Interactive Elements */
 .preis-container { display: flex; flex-direction: column; align-items: center; min-width: 65px; text-align: right; }
 .toggle-details-btn { background: none; border: none; cursor: pointer; display: block; margin: 4px auto 0 auto; font-size: 13px; color: #000000; transition: transform 0.28s var(--SMOOTH-CURVE), color 0.2s; padding: 4px; }
 .toggle-details-btn:hover { color: #000000; }
@@ -169,10 +178,9 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
 .legend-item img { width: 18px; height: 18px; object-fit: contain; }
 .price-info-text { font-size: 0.9rem; line-height: 1.5; color: #222; }
 
-
 /* 9. INFO-BOX */
 .canteen-info-box {
-  background-color: #8cdcb4; /* Das originale Stuwe-Mintgrün */
+  background-color: #8cdcb4; /* Official STUWE mint green */
   color: #1a1a1a;
   padding: 40px 20px;
   margin-top: 50px;
@@ -193,24 +201,24 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
   min-width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 16px; /* Etwas mehr Abstand zum Button */
-  align-items: center; /* Zentriert Bild und Button */
+  gap: 16px; 
+  align-items: center; 
 }
 
 #map {
     height: 250px; 
     width: 100%;
-    z-index: 1; /* Damit sie nicht von anderen Elementen überlagert wird */
+    z-index: 1; /* Avoid overlapping active layers */
 }
 
-/* Konsistenter Bild-Container */
+/* Image container styling */
 .map-image-container {
   width: 100%;
-  max-width: 360px; /* Begrenzt die Breite für Konsistenz */
-  height: 160px; /* Feste Höhe */
+  max-width: 360px; 
+  height: 160px; 
   border-radius: 8px;
   border: 1px solid rgba(0,0,0,0.1);
-  overflow: hidden; /* Schneidet Überstände des Bildes ab */
+  overflow: hidden; 
   background: #ffffff;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
@@ -218,13 +226,13 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
 .map-static-img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Sorgt dafür, dass das Bild den Container füllt ohne Verzerrung */
+  object-fit: cover; /* Crop and maintain ratio */
 }
 
 .btn-map-action {
   background: #000000;
   color: #ffffff;
-  border: none; /* Kein Standard-Button-Rahmen */
+  border: none; 
   text-decoration: none;
   text-align: center;
   padding: 12px 24px;
@@ -233,7 +241,7 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  width: auto; /* Button wird nur so breit wie der Text */
+  width: auto; 
   box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 }
 
@@ -242,16 +250,16 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
 }
 
 .btn-map-action:active {
-  transform: translateY(1px); /* Kleiner Klick-Effekt */
+  transform: translateY(1px); /* Press effect */
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
-/* Unveränderte Text-Styles */
+/* Typography */
 .info-text-side { flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 24px; }
 .info-block h3 { margin: 0 0 6px 0; font-size: 14px; letter-spacing: 0.5px; font-weight: 800; }
 .info-block p { margin: 0; font-size: 15px; color: #1a1a1a; }
 
-/* Die Puls-Animation */
+/* Pulsing effect keyframes */
 @keyframes mapPulse {
   0% { transform: scale(0.5); opacity: 1; }
   100% { transform: scale(1.8); opacity: 0; }
@@ -304,12 +312,11 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
   color: #718096;
 }
 
-/* --- HARDWARE BUTTON GRID --- */
-/* --- HARDWARE LISTE (statt Grid) --- */
+/* --- HARDWARE CONTROLLER LIST --- */
 .hw-grid {
   display: flex;
-  flex-direction: column; /* Elemente untereinander */
-  gap: 10px;              /* Abstand zwischen den Buttons */
+  flex-direction: column; /* Stack vertically */
+  gap: 10px; /* Spacing */
 }
 
 .hw-btn {
@@ -317,12 +324,12 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 12px;
-  display: flex;          /* Flexbox für Anordnung innerhalb des Buttons */
-  align-items: center;    /* Vertikal zentriert */
-  gap: 15px;              /* Abstand zwischen Icon, Text und Daten */
+  display: flex; 
+  align-items: center; /* Center vertically */
+  gap: 15px; 
   cursor: pointer;
   transition: all 0.2s var(--SMOOTH-CURVE);
-  width: 100%;            /* Volle Breite */
+  width: 100%; 
   text-align: left;
   justify-content: flex-start;
 }
@@ -331,21 +338,15 @@ select { padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-size
   background: #e2e8f0;
 }
 
-/* Icon links */
-.hw-icon { font-size: 20px; }
-
-/* Text und Daten rechts daneben */
-.hw-label { font-size: 14px; font-weight: 700; color: #1a1a1a; flex-grow: 1; }
-
-/* Zustand, wenn erfolgreich */
+/* Active/Success State */
 .hw-btn.success {
   background: #d1fae5;
   border-color: #34d399;
 }
 
-
+/* Icons & metadata labels */
 .hw-icon { font-size: 22px; margin-bottom: 4px; }
-.hw-label { font-size: 11px; font-weight: 700; color: #1a1a1a; }
+.hw-label { font-size: 11px; font-weight: 700; color: #1a1a1a; flex-grow: 1; }
 .hw-data { 
   font-size: 9px; 
   color: #475569; 
