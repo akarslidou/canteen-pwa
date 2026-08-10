@@ -1,87 +1,80 @@
 const HardwareController = {
   qrScanActive: false,
 
-  // Camera check & stream initialization
+  // Helper to detect current OS and Browser dynamically
+  getPlatformInfo() {
+    const ua = navigator.userAgent;
+    let os = "Unknown OS";
+    let browser = "Unknown Browser";
+
+    // Detect OS
+    if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+    else if (/Android/i.test(ua)) os = "Android";
+    else if (/Macintosh/i.test(ua)) os = "macOS";
+    else if (/Windows/i.test(ua)) os = "Windows";
+    else if (/Linux/i.test(ua)) os = "Linux";
+
+    // Detect Browser
+    if (/Chrome|CriOS/i.test(ua) && !/Edg/i.test(ua)) browser = "Chrome";
+    else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
+    else if (/Firefox|FxiOS/i.test(ua)) browser = "Firefox";
+    else if (/Edg/i.test(ua)) browser = "Edge";
+
+    return { os, browser };
+  },
+
+ // Camera check: Auto-detects Mobile (Environment) vs. Desktop (Webcam)
   async checkCamera() {
     const video = document.getElementById('cameraStream');
     const overlay = document.getElementById('cameraOverlay');
     const btn = document.getElementById('btnCamera');
+    const info = this.getPlatformInfo();
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert(`Camera API not supported on ${info.browser} (${info.os}).`);
+      return;
+    }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      let stream;
+      // Try mobile back-camera first, fallback to default webcam for Desktop
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      } catch (e) {
+        console.log("No environment camera found, falling back to standard webcam.");
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
       overlay.style.display = 'flex';
       video.srcObject = stream;
       btn.classList.add('success');
       
-      video.setAttribute("playsinline", true); // Required for iOS Safari
+      video.setAttribute("playsinline", true);
       video.play();
       
       this.qrScanActive = true;
       requestAnimationFrame(this.scanQRCode.bind(this));
     } catch (err) {
-      alert("Camera access denied!");
+      alert(`Camera access denied or no camera device available on your ${info.os} system.\nError: ${err.message || err}`);
     }
   },
 
-  // Actively analyze video frames for QR codes using the jsQR library
-  scanQRCode() {
-    if (!this.qrScanActive) return;
-
-    const video = document.getElementById('cameraStream');
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      let canvas = document.getElementById('qrCanvas');
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.id = 'qrCanvas';
-      }
-      const ctx = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
-      if (typeof jsQR !== 'undefined') {
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-        });
-        
-        if (code) {
-          if (navigator.vibrate) navigator.vibrate(100);
-          alert("QR Code Detected: " + code.data);
-          this.stopCamera();
-          return;
-        }
-      } else {
-        console.warn("jsQR library is not loaded. Ensure the CDN script is placed in your HTML.");
-      }
-    }
-    requestAnimationFrame(this.scanQRCode.bind(this));
-  },
-
-  // Stop camera tracks and terminate QR processing
-  stopCamera() {
-    this.qrScanActive = false;
-    const video = document.getElementById('cameraStream');
-    const overlay = document.getElementById('cameraOverlay');
-    const btn = document.getElementById('btnCamera');
-    
-    if (video.srcObject) {
-        const tracks = video.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-        video.srcObject = null;
-    }
-    
-    overlay.style.display = 'none';
-    btn.classList.remove('success');  
-  },
-
-  // Bluetooth GATT connection check with fallback alert for iOS
+  // Bluetooth GATT connection check with dynamic system reasons
   async checkBluetooth() {
     const btn = document.getElementById('btnBluetooth');
+    const info = this.getPlatformInfo();
     
     if (!navigator.bluetooth) {
-      alert("Web Bluetooth is not supported on iOS Safari (iPhone). Please test using Chrome on Android or Desktop.");
+      let reason = "This browser does not support Web Bluetooth.";
+      if (info.os === "iOS") {
+        reason = "Apple strictly blocks Web Bluetooth in all iOS browsers.";
+      } else if (info.browser === "Safari") {
+        reason = "Safari does not support Web Bluetooth. Please try using Google Chrome.";
+      } else if (info.browser === "Firefox") {
+        reason = "Firefox has disabled Web Bluetooth due to security concerns. Use Chrome or Edge.";
+      }
+      
+      alert(`Bluetooth Unavailable!\nDetected: ${info.browser} on ${info.os}.\n\nReason: ${reason}`);
       return;
     }
 
@@ -89,89 +82,82 @@ const HardwareController = {
       const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
       const server = await device.gatt.connect();
       
-      // 1. Turn button green
       btn.classList.add('success');
-      
-      // 2. Show alert after rendering
       setTimeout(() => {
-        alert("Connected to: " + device.name);
-        // 3. Remove green after user clicks "OK"
+        alert(`Successfully connected to: ${device.name || "Unnamed Device"} via Web Bluetooth.`);
         btn.classList.remove('success');
       }, 100);
 
     } catch (err) {
-      console.log("Bluetooth pairing cancelled");
+      console.log("Bluetooth pairing cancelled or failed:", err);
     }
   },
 
-  // Get user coordinates via Geolocation API
+  // Get user coordinates with intelligent error mapping for Desktop
   checkGPS() {
     const btn = document.getElementById('btnGPS');
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
+    const info = this.getPlatformInfo();
+
+    if (!navigator.geolocation) {
+      alert(`Geolocation API is not supported by ${info.browser} on ${info.os}.`);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
         const lat = pos.coords.latitude.toFixed(4);
         const lng = pos.coords.longitude.toFixed(4);
         
-        // 1. Turn button green
         btn.classList.add('success');
-        
-        // 2. Wait a tiny bit so the green renders, then show alert
         setTimeout(() => {
-          alert(`Location lock acquired: ${lat}, ${lng}`);
-          // 3. Remove green immediately after user clicks "OK"
+          alert(`Location lock acquired via ${info.browser} (${info.os}):\nLatitude: ${lat}\nLongitude: ${lng}\n\nNote: Desktop locations are simulated via Wi-Fi/IP address.`);
           btn.classList.remove('success');
         }, 100);
+      }, 
+      (err) => {
+        let errMsg = "Unknown error occurred.";
+        if (err.code === 1) errMsg = "Permission denied. Please enable location access in your browser settings.";
+        if (err.code === 2) errMsg = "Position unavailable (network/satellite link down).";
+        if (err.code === 3) errMsg = "Timeout expired while fetching location.";
 
-      }, (err) => {
-        alert("Location data unavailable.");
-      });
-    }
+        alert(`GPS/Location Error on ${info.os}:\n${errMsg}`);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   },
 
-  // Web NFC Reader (Chrome on Android only)
+  // Web NFC Reader - strictly limited to Android Chrome
   async checkNFC() {
+    const info = this.getPlatformInfo();
+
     if (!('NDEFReader' in window)) {
-      alert("Web NFC not supported by this browser/OS. (Note: iOS Safari blocks Web NFC; test with Chrome on Android).");
+      let reason = "Web NFC is an experimental feature currently only supported by Chrome on Android.";
+      if (info.os === "iOS") {
+        reason = "Apple completely blocks Web NFC inside the browser architecture.";
+      } else if (info.os === "Windows" || info.os === "macOS") {
+        reason = "Desktop operating systems lack the standardized hardware APIs for inline NFC reading via web applications.";
+      }
+
+      alert(`NFC Not Supported!\nDetected: ${info.browser} on ${info.os}.\n\nReason: ${reason}`);
       return;
     }
 
     try {
       const ndef = new NDEFReader();
-      alert("NFC polling active. Place an RFID/NFC tag (e.g., student ID, canteen card) against the back of your device.");
-      
+      alert("NFC polling active. Place an RFID/NFC tag against the back of your Android device.");
       await ndef.scan();
-      console.log("NFC scan session started successfully.");
 
       ndef.addEventListener("readingerror", () => {
         alert("NFC tag detected, but reading failed. Try again.");
       });
 
       ndef.addEventListener("reading", ({ message, serialNumber }) => {
-        alert(`NFC Read Success!\nCard Detected!\nSerial: ${serialNumber}`);
-        console.log(`NFC Tag UID: ${serialNumber}`);
+        alert(`NFC Read Success!\nSerial: ${serialNumber}`);
       });
-
     } catch (error) {
-      console.error("NFC operation failed:", error);
       alert(`NFC Error: ${error.message || error}`);
     }
-  },
-
-  // Terminate active video tracks to release hardware locks
-  stopCamera() {
-    const video = document.getElementById('cameraStream');
-    const overlay = document.getElementById('cameraOverlay');
-    const btn = document.getElementById('btnCamera');
-    
-    if (video.srcObject) {
-        const tracks = video.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-        video.srcObject = null;
-    }
-    
-    overlay.style.display = 'none';
-    btn.classList.remove('success');  
-  },
+  }
 };
 
 // Map STUWE keywords to local assets
