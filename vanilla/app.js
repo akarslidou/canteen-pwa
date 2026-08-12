@@ -204,7 +204,9 @@ const HardwareController = {
       video.setAttribute("muted", "true");
 
       await video.play();
-
+      console.log("Video:", video.videoWidth, video.videoHeight);
+      this.logEvent(`Video: ${video.videoWidth}x${video.videoHeight}`);
+      
       await new Promise((resolve) => {
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           resolve();
