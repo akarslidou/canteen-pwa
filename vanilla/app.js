@@ -181,15 +181,7 @@ const HardwareController = {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: {
-                ideal: "environment",
-              },
-              width: {
-                ideal: 1920,
-              },
-              height: {
-                ideal: 1080,
-              },
+              facingMode: "environment",
             },
           });
         } catch (e) {
