@@ -5,13 +5,15 @@ const HardwareController = {
   qrScanActive: false,
   qrCanvas: null,
   eventLog: [],
+  qrLastResult: null,
+  qrConfirmations: 0,
 
   // 📋 DEBUG LOG PANEL
   ensureLogPanel() {
-    let panel = document.getElementById('hc-log-panel');
+    let panel = document.getElementById("hc-log-panel");
     if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'hc-log-panel';
+      panel = document.createElement("div");
+      panel.id = "hc-log-panel";
       panel.style.cssText = `
         position: fixed; bottom: 16px; right: 16px; width: 280px; max-height: 180px;
         overflow-y: auto; background: rgba(20, 20, 20, 0.92); color: #81e6d9;
@@ -30,9 +32,9 @@ const HardwareController = {
     console.log(entry);
 
     const panel = this.ensureLogPanel();
-    const line = document.createElement('div');
-    line.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-    line.style.padding = '2px 0';
+    const line = document.createElement("div");
+    line.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+    line.style.padding = "2px 0";
     line.textContent = entry;
     panel.appendChild(line);
     panel.scrollTop = panel.scrollHeight;
@@ -40,9 +42,13 @@ const HardwareController = {
 
   toggleLogPanel() {
     const panel = this.ensureLogPanel();
-    const isHidden = panel.style.display === 'none' || !panel.style.display;
-    panel.style.display = isHidden ? 'block' : 'none';
-    this.showToast(isHidden ? "🐞 Debug Panel aktiv" : "🙈 Debug Panel verdeckt", "info", 1500);
+    const isHidden = panel.style.display === "none" || !panel.style.display;
+    panel.style.display = isHidden ? "block" : "none";
+    this.showToast(
+      isHidden ? "🐞 Debug Panel aktiv" : "🙈 Debug Panel verdeckt",
+      "info",
+      1500,
+    );
   },
 
   async copyLogToClipboard() {
@@ -50,21 +56,21 @@ const HardwareController = {
       this.showToast("Log ist noch leer.", "info");
       return;
     }
-    const text = this.eventLog.join('\n');
+    const text = this.eventLog.join("\n");
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
       } else {
-        const textarea = document.createElement('textarea');
+        const textarea = document.createElement("textarea");
         textarea.value = text;
         document.body.appendChild(textarea);
         textarea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      this.showToast('📋 Log kopiert! Bereit zum Einfügen.', 'success', 3000);
+      this.showToast("📋 Log kopiert! Bereit zum Einfügen.", "success", 3000);
     } catch (e) {
-      this.showToast('Fehler beim Kopieren des Logs.', 'error');
+      this.showToast("Fehler beim Kopieren des Logs.", "error");
     }
   },
 
@@ -88,10 +94,10 @@ const HardwareController = {
   },
 
   ensureToastContainer() {
-    let container = document.getElementById('hc-toast-container');
+    let container = document.getElementById("hc-toast-container");
     if (!container) {
-      container = document.createElement('div');
-      container.id = 'hc-toast-container';
+      container = document.createElement("div");
+      container.id = "hc-toast-container";
       container.style.cssText = `
         position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
         z-index: 9999; display: flex; flex-direction: column; gap: 8px;
@@ -102,14 +108,14 @@ const HardwareController = {
     return container;
   },
 
-  showToast(message, type = 'info', duration = 4000) {
+  showToast(message, type = "info", duration = 4000) {
     const container = this.ensureToastContainer();
-    const toast = document.createElement('div');
+    const toast = document.createElement("div");
 
     const colors = {
-      success: { bg: '#f0fff4', border: '#9ae6b4', text: '#22543d' },
-      error:   { bg: '#fff5f5', border: '#feb2b2', text: '#822727' },
-      info:    { bg: '#ebf8ff', border: '#90cdf4', text: '#2a4365' }
+      success: { bg: "#f0fff4", border: "#9ae6b4", text: "#22543d" },
+      error: { bg: "#fff5f5", border: "#feb2b2", text: "#822727" },
+      info: { bg: "#ebf8ff", border: "#90cdf4", text: "#2a4365" },
     };
     const c = colors[type] || colors.info;
 
@@ -124,241 +130,251 @@ const HardwareController = {
     container.appendChild(toast);
 
     requestAnimationFrame(() => {
-      toast.style.opacity = '1';
-      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = "1";
+      toast.style.transform = "translateY(0)";
     });
 
     setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(-8px)';
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(-8px)";
       setTimeout(() => toast.remove(), 250);
     }, duration);
   },
 
   showHardwareError(title, systemInfo, reason) {
     this.logEvent(`ERROR: ${title} — ${reason}`);
-    this.showToast(`⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n${reason}`, 'error', 5000);
+    this.showToast(
+      `⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n${reason}`,
+      "error",
+      5000,
+    );
   },
 
   // 📷 KAMERA & QR SCANNER
   async checkCamera() {
-  const info = this.getPlatformInfo();
+    const info = this.getPlatformInfo();
 
-  const video = document.getElementById("cameraStream");
-  const overlay = document.getElementById("cameraOverlay");
-  const btn = document.getElementById("btnCamera");
+    const video = document.getElementById("cameraStream");
+    const overlay = document.getElementById("cameraOverlay");
+    const btn = document.getElementById("btnCamera");
 
-  if (!video || !overlay || !btn) {
-    console.error("Kamera-Elemente wurden nicht gefunden.");
-    return;
-  }
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    this.showHardwareError(
-      "Kamera nicht unterstützt",
-      info,
-      "Dieser Browser unterstützt keinen Kamerazugriff."
-    );
-    return;
-  }
-
-  try {
-    const isMobile =
-      info.os === "iOS" ||
-      info.os === "Android";
-
-    let stream;
-
-    if (isMobile) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: {
-              ideal: "environment"
-            },
-            width: {
-              ideal: 1920
-            },
-            height: {
-              ideal: 1080
-            }
-          }
-        });
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true
-        });
-      }
-    } else {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: true
-      });
+    if (!video || !overlay || !btn) {
+      console.error("Kamera-Elemente wurden nicht gefunden.");
+      return;
     }
 
-    overlay.style.display = "flex";
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.showHardwareError(
+        "Kamera nicht unterstützt",
+        info,
+        "Dieser Browser unterstützt keinen Kamerazugriff.",
+      );
+      return;
+    }
 
-    video.srcObject = stream;
+    try {
+      const isMobile = info.os === "iOS" || info.os === "Android";
 
-    video.setAttribute("playsinline", "true");
-    video.setAttribute("autoplay", "true");
-    video.setAttribute("muted", "true");
+      let stream;
 
-    await video.play();
-
-    await new Promise(resolve => {
-      if (
-        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
-      ) {
-        resolve();
+      if (isMobile) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: {
+                ideal: "environment",
+              },
+              width: {
+                ideal: 1920,
+              },
+              height: {
+                ideal: 1080,
+              },
+            },
+          });
+        } catch (e) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        }
       } else {
-        video.addEventListener(
-          "loadedmetadata",
-          resolve,
-          { once: true }
-        );
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
       }
-    });
 
-    console.log(
-      "Kamera gestartet:",
-      video.videoWidth,
-      "x",
-      video.videoHeight
-    );
+      overlay.style.display = "flex";
 
-    this.showToast(
-      `Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`,
-      "info",
-      2000
-    );
+      video.srcObject = stream;
 
-    btn.classList.add("success");
+      video.setAttribute("playsinline", "true");
+      video.setAttribute("autoplay", "true");
+      video.setAttribute("muted", "true");
 
-    this.qrScanActive = true;
-    requestAnimationFrame(
-      this.scanQRCode.bind(this)
-    );
+      await video.play();
 
-  } catch (err) {
-    this.showHardwareError(
-      "Kamerazugriff fehlgeschlagen",
-      info,
-      `Der Zugriff auf die Kamera wurde verweigert oder es wurde keine Kamera gefunden.\n(Details: ${
-        err.message || err
-      })`
-    );
-  }
-},
+      await new Promise((resolve) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+        } else {
+          video.addEventListener("loadedmetadata", resolve, { once: true });
+        }
+      });
+
+      console.log(
+        "Kamera gestartet:",
+        video.videoWidth,
+        "x",
+        video.videoHeight,
+      );
+
+      this.showToast(
+        `Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`,
+        "info",
+        2000,
+      );
+
+      btn.classList.add("success");
+
+      this.qrScanActive = true;
+      requestAnimationFrame(this.scanQRCode.bind(this));
+    } catch (err) {
+      this.showHardwareError(
+        "Kamerazugriff fehlgeschlagen",
+        info,
+        `Der Zugriff auf die Kamera wurde verweigert oder es wurde keine Kamera gefunden.\n(Details: ${
+          err.message || err
+        })`,
+      );
+    }
+  },
 
   scanQRCode() {
     if (!this.qrScanActive) return;
 
-    const video = document.getElementById('cameraStream');
-    if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+    const video = document.getElementById("cameraStream");
+
+    if (!video) {
+      requestAnimationFrame(this.scanQRCode.bind(this));
+      return;
+    }
+
+    if (!video.videoWidth || !video.videoHeight) {
+      requestAnimationFrame(this.scanQRCode.bind(this));
+      return;
+    }
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
       if (!this.qrCanvas) {
-        this.qrCanvas = document.createElement('canvas');
+        this.qrCanvas = document.createElement("canvas");
       }
+
       const canvas = this.qrCanvas;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-      if (typeof jsQR !== 'undefined') {
+      if (typeof jsQR !== "undefined") {
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
         });
 
-        if (code) {
-          if (navigator.vibrate) navigator.vibrate(100);
-
+        if (code && code.data) {
           const qrContent = code.data.trim();
 
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+
           this.logEvent(`QR-Code erkannt: ${qrContent}`);
+
           this.stopCamera();
 
-          if (/^https?:\/\//i.test(qrContent)) {
-            const openLink = confirm(
-              `QR-Code erkannt.\n\nMöchtest du die folgende Seite öffnen?\n\n${qrContent}`
-            );
-            if (openLink) {
-              window.open(qrContent, "_blank");
-            }
+          const seiteOeffnen = confirm(
+            `QR-Code erfolgreich erkannt.\n\nInhalt:\n${qrContent}\n\nMöchtest du den Link jetzt öffnen?`,
+          );
 
-          } else {
-            this.showToast(
-              `QR-Code erkannt:\n${qrContent}`,
-              "success"
-            );
+          if (seiteOeffnen) {
+            if (/^https?:\/\//i.test(qrContent)) {
+              window.location.href = qrContent;
+            } else {
+              this.showToast(`QR-Inhalt:\n${qrContent}`, "success", 5000);
+            }
           }
+
           return;
         }
       }
     }
+
     requestAnimationFrame(this.scanQRCode.bind(this));
-  },
-
-  stopCamera() {
-    this.qrScanActive = false;
-    const video = document.getElementById('cameraStream');
-    const overlay = document.getElementById('cameraOverlay');
-    const btn = document.getElementById('btnCamera');
-
-    if (video && video.srcObject) {
-      const tracks = video.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-      video.srcObject = null;
-    }
-
-    if (overlay) overlay.style.display = 'none';
-    if (btn) btn.classList.remove('success');
-    this.logEvent("Kamera gestoppt");
   },
 
   // 📶 BLUETOOTH
   async checkBluetooth() {
     const info = this.getPlatformInfo();
-    const btn = document.getElementById('btnBluetooth');
+    const btn = document.getElementById("btnBluetooth");
     this.logEvent(`Bluetooth-Test gestartet (${info.browser} / ${info.os})`);
 
     if (!navigator.bluetooth) {
       let reason = "Dieser Browser unterstützt die Web Bluetooth API nicht.";
-      if (info.os === "iOS") reason = "Apple blockiert Web Bluetooth in allen iOS-Browsern.";
-      else if (info.browser === "Safari") reason = "Safari unterstützt kein Web Bluetooth (nutze Chrome/Edge).";
-      else if (info.browser === "Firefox") reason = "Firefox hat Web Bluetooth deaktiviert.";
+      if (info.os === "iOS")
+        reason = "Apple blockiert Web Bluetooth in allen iOS-Browsern.";
+      else if (info.browser === "Safari")
+        reason = "Safari unterstützt kein Web Bluetooth (nutze Chrome/Edge).";
+      else if (info.browser === "Firefox")
+        reason = "Firefox hat Web Bluetooth deaktiviert.";
 
       this.showHardwareError("Bluetooth nicht verfügbar", info, reason);
       return;
     }
 
     try {
-      const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+      });
       await device.gatt.connect();
 
-      if (btn) btn.classList.add('success');
-      this.logEvent(`Bluetooth verbunden: ${device.name || 'Unbenannt'}`);
-      this.showToast(`✅ Verbunden mit "${device.name || 'Unbenannt'}"`, 'success');
-      setTimeout(() => btn && btn.classList.remove('success'), 3000);
-
+      if (btn) btn.classList.add("success");
+      this.logEvent(`Bluetooth verbunden: ${device.name || "Unbenannt"}`);
+      this.showToast(
+        `✅ Verbunden mit "${device.name || "Unbenannt"}"`,
+        "success",
+      );
+      setTimeout(() => btn && btn.classList.remove("success"), 3000);
     } catch (err) {
-      if (err.name === 'NotFoundError' || (err.message && err.message.includes('cancelled'))) {
+      if (
+        err.name === "NotFoundError" ||
+        (err.message && err.message.includes("cancelled"))
+      ) {
         this.logEvent("Bluetooth Koppelung abgebrochen");
         return;
       }
-      this.showHardwareError("Bluetooth Verbindung fehlgeschlagen", info, err.message || err);
+      this.showHardwareError(
+        "Bluetooth Verbindung fehlgeschlagen",
+        info,
+        err.message || err,
+      );
     }
   },
 
   // 📍 GPS / GEOLOCATION
   checkGPS() {
     const info = this.getPlatformInfo();
-    const btn = document.getElementById('btnGPS');
+    const btn = document.getElementById("btnGPS");
     this.logEvent(`GPS-Abfrage gestartet (${info.browser} / ${info.os})`);
 
     if (!navigator.geolocation) {
-      this.showHardwareError("GPS nicht unterstützt", info, "Geolocation API fehlt.");
+      this.showHardwareError(
+        "GPS nicht unterstützt",
+        info,
+        "Geolocation API fehlt.",
+      );
       return;
     }
 
@@ -369,20 +385,26 @@ const HardwareController = {
         const lat = pos.coords.latitude.toFixed(4);
         const lng = pos.coords.longitude.toFixed(4);
 
-        if (btn) btn.classList.add('success');
+        if (btn) btn.classList.add("success");
         this.logEvent(`GPS empfangen: Lat ${lat}, Lng ${lng}`);
-        this.showToast(`📍 Position ermittelt!\nLat: ${lat}, Lng: ${lng}`, 'success');
-        setTimeout(() => btn && btn.classList.remove('success'), 3000);
+        this.showToast(
+          `📍 Position ermittelt!\nLat: ${lat}, Lng: ${lng}`,
+          "success",
+        );
+        setTimeout(() => btn && btn.classList.remove("success"), 3000);
       },
       (err) => {
         let reason = "Unbekannter Fehler bei Standortabfrage.";
-        if (err.code === 1) reason = "Standortzugriff im Browser oder OS verweigert.";
-        if (err.code === 2) reason = "Position nicht verfügbar (kein GPS-Empfang).";
-        if (err.code === 3) reason = "Zeitüberschreitung beim Abrufen des Standorts.";
+        if (err.code === 1)
+          reason = "Standortzugriff im Browser oder OS verweigert.";
+        if (err.code === 2)
+          reason = "Position nicht verfügbar (kein GPS-Empfang).";
+        if (err.code === 3)
+          reason = "Zeitüberschreitung beim Abrufen des Standorts.";
 
         this.showHardwareError("Standort-Fehler", info, reason);
       },
-      { timeout: 10000, enableHighAccuracy: isMobile }
+      { timeout: 10000, enableHighAccuracy: isMobile },
     );
   },
 
@@ -391,11 +413,17 @@ const HardwareController = {
     const info = this.getPlatformInfo();
     this.logEvent(`NFC-Test gestartet (${info.browser} / ${info.os})`);
 
-    if (!('NDEFReader' in window)) {
+    if (!("NDEFReader" in window)) {
       let reason = "Web NFC wird nur von Chrome auf Android unterstützt.";
-      if (info.os === "iOS") reason = "Apple blockiert Web NFC in allen iOS-Browsern vollständig.";
-      else if (info.os === "Windows" || info.os === "macOS" || info.os === "Linux") {
-        reason = "Desktop-Betriebssysteme haben keine NFC-Schnittstelle im Browser.";
+      if (info.os === "iOS")
+        reason = "Apple blockiert Web NFC in allen iOS-Browsern vollständig.";
+      else if (
+        info.os === "Windows" ||
+        info.os === "macOS" ||
+        info.os === "Linux"
+      ) {
+        reason =
+          "Desktop-Betriebssysteme haben keine NFC-Schnittstelle im Browser.";
       }
 
       this.showHardwareError("NFC Nicht Unterstützt", info, reason);
@@ -407,17 +435,26 @@ const HardwareController = {
       await ndef.scan();
 
       this.logEvent("NFC-Scan aktiv — warte auf Tag...");
-      this.showToast("NFC-Scan aktiv — halte einen NFC-Tag an dein Smartphone.", 'info');
+      this.showToast(
+        "NFC-Scan aktiv — halte einen NFC-Tag an dein Smartphone.",
+        "info",
+      );
 
       ndef.addEventListener("readingerror", () => {
-        this.showHardwareError("NFC Lesefehler", info, "Tag erkannt, aber Auslesen fehlgeschlagen.");
+        this.showHardwareError(
+          "NFC Lesefehler",
+          info,
+          "Tag erkannt, aber Auslesen fehlgeschlagen.",
+        );
       });
 
       ndef.addEventListener("reading", ({ serialNumber }) => {
         this.logEvent(`NFC Tag gelesen: ${serialNumber}`);
-        this.showToast(`NFC Tag gelesen!\nSeriennummer: ${serialNumber}`, 'success');
+        this.showToast(
+          `NFC Tag gelesen!\nSeriennummer: ${serialNumber}`,
+          "success",
+        );
       });
-
     } catch (error) {
       this.showHardwareError("NFC Fehler", info, error.message || error);
     }
@@ -425,43 +462,44 @@ const HardwareController = {
 
   simulateNFCScan() {
     this.logEvent("SIMULIERTER NFC Scan gestartet");
-    this.showToast("⚠️ Simulierter Scan...", 'info', 1500);
+    this.showToast("⚠️ Simulierter Scan...", "info", 1500);
 
     setTimeout(() => {
       const fakeSerial = "04:A2:B1:" + Math.floor(1000 + Math.random() * 9000);
       this.logEvent(`SIMULIERTER Tag gelesen: ${fakeSerial}`);
-      this.showToast(`NFC Tag gelesen! (simuliert)\nSeriennummer: ${fakeSerial}`, 'success');
+      this.showToast(
+        `NFC Tag gelesen! (simuliert)\nSeriennummer: ${fakeSerial}`,
+        "success",
+      );
     }, 1000);
-  }
+  },
 };
 
 // ============================================================================
 // 2. STUWE ICON MAPPER & HELPER
 // ============================================================================
-const STUWE_ICON_BASE = "images/"; 
+const STUWE_ICON_BASE = "images/";
 const stuweIconMap = {
-  "empfehlung": "icon_empfehlungs_des_kuechenchefs.png.webp",
-  "fisch": "icon_fisch.png.webp",
-  "geflügel": "icon_gefluegel.png.webp",
-  "kalb": "icon_kalb.png.webp",
-  "lamm":"icon_lamm.png.webp",
-  "rind": "icon_rind.png.webp",
-  "schwein": "icon_schwein.png.webp",
-  "vegan": "icon_vegan.png.webp",
-  "vegetarisch": "icon_vegetarisch.png.webp",
-  "wild": "icon_wild.png.webp"
+  empfehlung: "icon_empfehlungs_des_kuechenchefs.png.webp",
+  fisch: "icon_fisch.png.webp",
+  geflügel: "icon_gefluegel.png.webp",
+  kalb: "icon_kalb.png.webp",
+  lamm: "icon_lamm.png.webp",
+  rind: "icon_rind.png.webp",
+  schwein: "icon_schwein.png.webp",
+  vegan: "icon_vegan.png.webp",
+  vegetarisch: "icon_vegetarisch.png.webp",
+  wild: "icon_wild.png.webp",
 };
 
 function getStuweIconHtml(meal) {
-  if (!meal) return '';
+  if (!meal) return "";
 
-  const textToSearch = [
-    meal.name,
-    meal.category,
-    ...(meal.notes || []) 
-  ].join(' ').toLowerCase();
+  const textToSearch = [meal.name, meal.category, ...(meal.notes || [])]
+    .join(" ")
+    .toLowerCase();
 
-  let foundIcons = '';
+  let foundIcons = "";
 
   for (const key in stuweIconMap) {
     if (textToSearch.includes(key.toLowerCase())) {
@@ -478,128 +516,140 @@ function getStuweIconHtml(meal) {
 let meals = [];
 let isLoading = true;
 let isClosed = false;
-let isOfflineError = false; 
-let hasNoData = false;       
+let isOfflineError = false;
+let hasNoData = false;
 let availableDays = [];
-let selectedDate = '';
-let canteenId = '';
-let currentUniKey = 'tuebingen';
-let activePriceType = 'students'; 
+let selectedDate = "";
+let canteenId = "";
+let currentUniKey = "tuebingen";
+let activePriceType = "students";
 let activeFilterKeywords = [];
-let nodes = {}; 
+let nodes = {};
 let map = null;
 
-const API_BASE_URL = 'https://openmensa.org/api/v2/canteens/';
+const API_BASE_URL = "https://openmensa.org/api/v2/canteens/";
 
 const universityCanteens = {
   tuebingen: [
-    { 
-      id: 1771, 
-      name: "Mensa Wilhelmstraße", 
-      lat: 48.5238, lng: 9.0567,
-      hours: "Mo - Fr: 11:15 - 14:00 Uhr (Essensausgabe)", 
-      address: "Wilhelmstraße 13, 72074 Tübingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Wilhelmstraße+Tübingen" 
+    {
+      id: 1771,
+      name: "Mensa Wilhelmstraße",
+      lat: 48.5238,
+      lng: 9.0567,
+      hours: "Mo - Fr: 11:15 - 14:00 Uhr (Essensausgabe)",
+      address: "Wilhelmstraße 13, 72074 Tübingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Wilhelmstraße+Tübingen",
     },
-    { 
-      id: 1766, 
-      name: "Mensa Morgenstelle", 
-      lat: 48.5365, lng: 9.0347,
-      hours: "Mo - Fr: 11:30 - 14:00 Uhr", 
-      address: "Auf der Morgenstelle 26, 72076 Tübingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Morgenstelle+Tübingen" 
+    {
+      id: 1766,
+      name: "Mensa Morgenstelle",
+      lat: 48.5365,
+      lng: 9.0347,
+      hours: "Mo - Fr: 11:30 - 14:00 Uhr",
+      address: "Auf der Morgenstelle 26, 72076 Tübingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Morgenstelle+Tübingen",
     },
-    { 
-      id: 1768, 
-      name: "Mensa Prinz Karl", 
-      lat: 48.5211, lng: 9.0572,
-      hours: "Aktuell geschlossen", 
-      address: "Hafengasse 6, 72070 Tübingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Prinz+Karl+Tübingen" 
+    {
+      id: 1768,
+      name: "Mensa Prinz Karl",
+      lat: 48.5211,
+      lng: 9.0572,
+      hours: "Aktuell geschlossen",
+      address: "Hafengasse 6, 72070 Tübingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Prinz+Karl+Tübingen",
     },
-    { 
-      id: 1763, 
-      name: "Cafeteria Morgenstelle", 
-      lat: 48.5365, lng: 9.0347,
-      hours: "Mo - Fr: 11:00 - 14:30 Uhr (Tagesessen)", 
-      address: "Auf der Morgenstelle 26, 72076 Tübingen", 
-      url: "https://www.openstreetmap.org/search?query=Cafeteria+Morgenstelle+Tübingen" 
-    }
+    {
+      id: 1763,
+      name: "Cafeteria Morgenstelle",
+      lat: 48.5365,
+      lng: 9.0347,
+      hours: "Mo - Fr: 11:00 - 14:30 Uhr (Tagesessen)",
+      address: "Auf der Morgenstelle 26, 72076 Tübingen",
+      url: "https://www.openstreetmap.org/search?query=Cafeteria+Morgenstelle+Tübingen",
+    },
   ],
   uni_stuttgart: [
-    { 
-      id: 399, 
-      name: "Mensa Vaihingen", 
-      lat: 48.7455, lng: 9.1066,
-      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)", 
-      address: "Pfaffenwaldring 45, 70569 Stuttgart", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Vaihingen+Stuttgart" 
+    {
+      id: 399,
+      name: "Mensa Vaihingen",
+      lat: 48.7455,
+      lng: 9.1066,
+      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)",
+      address: "Pfaffenwaldring 45, 70569 Stuttgart",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Vaihingen+Stuttgart",
     },
-    { 
-      id: 1202, 
-      name: "Mensa Central", 
-      lat: 48.7824, lng: 9.1729,
-      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)", 
-      address: "Ossietzkystraße 3, 70174 Stuttgart", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Central+Stuttgart" 
-    }
+    {
+      id: 1202,
+      name: "Mensa Central",
+      lat: 48.7824,
+      lng: 9.1729,
+      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)",
+      address: "Ossietzkystraße 3, 70174 Stuttgart",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Central+Stuttgart",
+    },
   ],
   hohenheim: [
-    { 
-      id: 1765, 
-      name: "Mensa Hohenheim", 
-      lat: 48.7118, lng: 9.2132,
-      hours: "Mo - Fr: 11:00 - 14:00 Uhr", 
-      address: "Garbenstraße 13, 70599 Stuttgart", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Hohenheim" 
-    }
+    {
+      id: 1765,
+      name: "Mensa Hohenheim",
+      lat: 48.7118,
+      lng: 9.2132,
+      hours: "Mo - Fr: 11:00 - 14:00 Uhr",
+      address: "Garbenstraße 13, 70599 Stuttgart",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Hohenheim",
+    },
   ],
   esslingen: [
-    { 
-      id: 1771, 
-      name: "Mensa Esslingen Stadtmitte", 
-      lat: 48.7381, lng: 9.3113,
-      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)", 
-      address: "Kanalstraße 33, 73728 Esslingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Kanalstraße+Esslingen" 
+    {
+      id: 1771,
+      name: "Mensa Esslingen Stadtmitte",
+      lat: 48.7381,
+      lng: 9.3113,
+      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)",
+      address: "Kanalstraße 33, 73728 Esslingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Kanalstraße+Esslingen",
     },
-    { 
-      id: 1772, 
-      name: "Mensa Esslingen Flandernstraße", 
-      lat: 48.7483, lng: 9.3226,
-      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)", 
-      address: "Flandernstraße 101, 73732 Esslingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Flandernstraße+Esslingen" 
-    }
+    {
+      id: 1772,
+      name: "Mensa Esslingen Flandernstraße",
+      lat: 48.7483,
+      lng: 9.3226,
+      hours: "Mo - Fr: 11:15 - 14:15 Uhr (Essensausgabe)",
+      address: "Flandernstraße 101, 73732 Esslingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Flandernstraße+Esslingen",
+    },
   ],
   nuertingen: [
-    { 
-      id: 1767, 
-      name: "Mensa Nürtingen", 
-      lat: 48.6276, lng: 9.3361,
-      hours: "Mo - Fr: 11:00 - 14:00 Uhr", 
-      address: "Heiligkreuzstraße 15, 72622 Nürtingen", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Nürtingen" 
-    }
+    {
+      id: 1767,
+      name: "Mensa Nürtingen",
+      lat: 48.6276,
+      lng: 9.3361,
+      hours: "Mo - Fr: 11:00 - 14:00 Uhr",
+      address: "Heiligkreuzstraße 15, 72622 Nürtingen",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Nürtingen",
+    },
   ],
   karlsruhe: [
-    { 
-      id: 1618, 
-      name: "Mensa Am Adenauerring (KIT)", 
-      lat: 49.0118, lng: 8.4170,
-      hours: "Mo - Fr: 11:00 - 14:00 Uhr", 
-      address: "Adenauerring 7, 76131 Karlsruhe", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+am+Adenauerring+Karlsruhe" 
+    {
+      id: 1618,
+      name: "Mensa Am Adenauerring (KIT)",
+      lat: 49.0118,
+      lng: 8.417,
+      hours: "Mo - Fr: 11:00 - 14:00 Uhr",
+      address: "Adenauerring 7, 76131 Karlsruhe",
+      url: "https://www.openstreetmap.org/search?query=Mensa+am+Adenauerring+Karlsruhe",
     },
-    { 
-      id: 1621, 
-      name: "Mensa Moltkestraße", 
-      lat: 49.0159, lng: 8.3905,
-      hours: "Mo - Fr: 11:15 - 14:00 Uhr", 
-      address: "Moltkestraße 30, 76133 Karlsruhe", 
-      url: "https://www.openstreetmap.org/search?query=Mensa+Moltkestraße+Karlsruhe" 
-    }
-  ]
+    {
+      id: 1621,
+      name: "Mensa Moltkestraße",
+      lat: 49.0159,
+      lng: 8.3905,
+      hours: "Mo - Fr: 11:15 - 14:00 Uhr",
+      address: "Moltkestraße 30, 76133 Karlsruhe",
+      url: "https://www.openstreetmap.org/search?query=Mensa+Moltkestraße+Karlsruhe",
+    },
+  ],
 };
 
 // ============================================================================
@@ -607,19 +657,21 @@ const universityCanteens = {
 // ============================================================================
 
 function initMap(lat, lng, name) {
-  const mapElement = document.getElementById('map');
-  if (!mapElement || typeof L === 'undefined') return;
+  const mapElement = document.getElementById("map");
+  if (!mapElement || typeof L === "undefined") return;
 
-  if (map) { map.remove(); }
+  if (map) {
+    map.remove();
+  }
 
-  map = L.map('map').setView([lat, lng], 16);
+  map = L.map("map").setView([lat, lng], 16);
 
   setTimeout(() => {
     if (map) map.invalidateSize();
   }, 300);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap",
   }).addTo(map);
 
   L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup();
@@ -628,9 +680,11 @@ function initMap(lat, lng, name) {
 function toggleDropdown(id) {
   const target = document.getElementById(id);
   if (!target) return;
-  const warOffen = target.classList.contains('offen');
-  document.querySelectorAll('.filter-dropdown-container').forEach(el => el.classList.remove('offen'));
-  if (!warOffen) target.classList.add('offen');
+  const warOffen = target.classList.contains("offen");
+  document
+    .querySelectorAll(".filter-dropdown-container")
+    .forEach((el) => el.classList.remove("offen"));
+  if (!warOffen) target.classList.add("offen");
 }
 
 function changePriceType(type) {
@@ -640,118 +694,140 @@ function changePriceType(type) {
 
 function applyFilters() {
   activeFilterKeywords = [];
-  document.querySelectorAll('.filter-checkbox:checked').forEach(cb => {
+  document.querySelectorAll(".filter-checkbox:checked").forEach((cb) => {
     activeFilterKeywords.push(cb.value.toLowerCase());
   });
   renderMeals();
-  const dropdown = document.getElementById('categoryDropdown');
-  if (dropdown) dropdown.classList.remove('offen');
+  const dropdown = document.getElementById("categoryDropdown");
+  if (dropdown) dropdown.classList.remove("offen");
 }
 
 function resetFilters() {
-  document.querySelectorAll('.filter-checkbox').forEach(cb => cb.checked = false);
+  document
+    .querySelectorAll(".filter-checkbox")
+    .forEach((cb) => (cb.checked = false));
   activeFilterKeywords = [];
   renderMeals();
-  const dropdown = document.getElementById('categoryDropdown');
-  if (dropdown) dropdown.classList.remove('offen');
+  const dropdown = document.getElementById("categoryDropdown");
+  if (dropdown) dropdown.classList.remove("offen");
 }
 
 // ABSTURZSICHERE EVENT-LISTENER
 function initEventListeners() {
-  document.getElementById('menuOpenTrigger')?.addEventListener('click', toggleMenu);
-  document.getElementById('menuCloseTrigger')?.addEventListener('click', toggleMenu);
-  nodes.menuOverlay?.addEventListener('click', toggleMenu);
+  document
+    .getElementById("menuOpenTrigger")
+    ?.addEventListener("click", toggleMenu);
+  document
+    .getElementById("menuCloseTrigger")
+    ?.addEventListener("click", toggleMenu);
+  nodes.menuOverlay?.addEventListener("click", toggleMenu);
 
-  nodes.headerCanteenTrigger?.addEventListener('click', toggleInlineDropdown);
-  nodes.dropdownSchliesser?.addEventListener('click', toggleInlineDropdown);
+  nodes.headerCanteenTrigger?.addEventListener("click", toggleInlineDropdown);
+  nodes.dropdownSchliesser?.addEventListener("click", toggleInlineDropdown);
 
-  document.getElementById('carouselPrev')?.addEventListener('click', () => scrollCarousel(-1));
-  document.getElementById('carouselNext')?.addEventListener('click', () => scrollCarousel(1));
+  document
+    .getElementById("carouselPrev")
+    ?.addEventListener("click", () => scrollCarousel(-1));
+  document
+    .getElementById("carouselNext")
+    ?.addEventListener("click", () => scrollCarousel(1));
 
-  nodes.citySelect?.addEventListener('change', (e) => {
+  nodes.citySelect?.addEventListener("change", (e) => {
     currentUniKey = e.target.value;
-    canteenId = universityCanteens[currentUniKey][0].id; 
+    canteenId = universityCanteens[currentUniKey][0].id;
     updatePageHeader();
     updateCanteenDropdown(currentUniKey);
     resetMealsAndReload();
-    toggleMenu(); 
+    toggleMenu();
   });
 
-  nodes.inlineDropdown?.addEventListener('click', (e) => {
-    const item = e.target.closest('.inline-dropdown-item');
+  nodes.inlineDropdown?.addEventListener("click", (e) => {
+    const item = e.target.closest(".inline-dropdown-item");
     if (!item) return;
-    
+
     canteenId = item.dataset.canteenId;
     updatePageHeader();
-    updateCanteenDropdown(currentUniKey); 
+    updateCanteenDropdown(currentUniKey);
     resetMealsAndReload();
     toggleInlineDropdown();
   });
 }
 
 function setupInitialState() {
-  if (nodes.citySelect) nodes.citySelect.value = 'tuebingen';
-  canteenId = universityCanteens['tuebingen'][0].id;
-  
+  if (nodes.citySelect) nodes.citySelect.value = "tuebingen";
+  canteenId = universityCanteens["tuebingen"][0].id;
+
   updatePageHeader();
-  updateCanteenDropdown('tuebingen');
+  updateCanteenDropdown("tuebingen");
   resetMealsAndReload();
 }
 
 function toggleMenu() {
-  nodes.appSidebar?.classList.toggle('offen');
-  nodes.menuOverlay?.classList.toggle('offen');
+  nodes.appSidebar?.classList.toggle("offen");
+  nodes.menuOverlay?.classList.toggle("offen");
 }
 
 function toggleInlineDropdown() {
-  nodes.inlineDropdown?.classList.toggle('offen');
-  nodes.dropdownSchliesser?.classList.toggle('offen');
-  nodes.headerCanteenTrigger?.classList.toggle('aktiv');
+  nodes.inlineDropdown?.classList.toggle("offen");
+  nodes.dropdownSchliesser?.classList.toggle("offen");
+  nodes.headerCanteenTrigger?.classList.toggle("aktiv");
 }
 
 function scrollCarousel(direction) {
   const container = nodes.dayCarousel;
   if (!container) return;
-  const firstButton = container.querySelector('.tag-button');
+  const firstButton = container.querySelector(".tag-button");
   if (!firstButton) return;
 
   const width = firstButton.offsetWidth;
   const gap = parseFloat(window.getComputedStyle(container).gap) || 12;
-  const scrollAmount = width + gap; 
-  
+  const scrollAmount = width + gap;
+
   const currentScroll = container.scrollLeft;
-  const targetScroll = Math.round((currentScroll + (scrollAmount * direction)) / scrollAmount) * scrollAmount;
-  
-  container.scrollTo({ 
-    left: targetScroll, 
-    behavior: 'smooth' 
+  const targetScroll =
+    Math.round((currentScroll + scrollAmount * direction) / scrollAmount) *
+    scrollAmount;
+
+  container.scrollTo({
+    left: targetScroll,
+    behavior: "smooth",
   });
 }
 
 function updatePageHeader() {
-  if (nodes.citySelect && nodes.citySelect.options && nodes.citySelect.options[nodes.citySelect.selectedIndex]) {
+  if (
+    nodes.citySelect &&
+    nodes.citySelect.options &&
+    nodes.citySelect.options[nodes.citySelect.selectedIndex]
+  ) {
     if (nodes.headerUniversityTitle) {
-      nodes.headerUniversityTitle.textContent = nodes.citySelect.options[nodes.citySelect.selectedIndex].text;
+      nodes.headerUniversityTitle.textContent =
+        nodes.citySelect.options[nodes.citySelect.selectedIndex].text;
     }
   }
-  
-  const currentCanteen = universityCanteens[currentUniKey]?.find(c => c.id == canteenId);
+
+  const currentCanteen = universityCanteens[currentUniKey]?.find(
+    (c) => c.id == canteenId,
+  );
   if (currentCanteen) {
-    if (nodes.headerCanteenTitle) nodes.headerCanteenTitle.textContent = currentCanteen.name;
+    if (nodes.headerCanteenTitle)
+      nodes.headerCanteenTitle.textContent = currentCanteen.name;
     if (nodes.infoHours) nodes.infoHours.textContent = currentCanteen.hours;
-    if (nodes.infoCanteenName) nodes.infoCanteenName.textContent = currentCanteen.name.toUpperCase();
-    if (nodes.infoAddress) nodes.infoAddress.textContent = currentCanteen.address;
+    if (nodes.infoCanteenName)
+      nodes.infoCanteenName.textContent = currentCanteen.name.toUpperCase();
+    if (nodes.infoAddress)
+      nodes.infoAddress.textContent = currentCanteen.address;
 
     if (nodes.infoMapButton) {
       nodes.infoMapButton.onclick = () => {
-        window.open(currentCanteen.url, '_blank');
+        window.open(currentCanteen.url, "_blank");
       };
     }
-    
+
     if (currentCanteen.lat && currentCanteen.lng) {
       setTimeout(() => {
         initMap(currentCanteen.lat, currentCanteen.lng, currentCanteen.name);
-      }, 100); 
+      }, 100);
     }
   }
 }
@@ -759,20 +835,20 @@ function updatePageHeader() {
 function updateCanteenDropdown(uniKey) {
   if (!nodes.inlineDropdown) return;
   const fragment = document.createDocumentFragment();
-  nodes.inlineDropdown.innerHTML = '';
-  
+  nodes.inlineDropdown.innerHTML = "";
+
   if (universityCanteens[uniKey]) {
     universityCanteens[uniKey]
-      .filter(c => c.id != canteenId)
-      .forEach(c => {
-        const item = document.createElement('div');
-        item.className = 'inline-dropdown-item';
+      .filter((c) => c.id != canteenId)
+      .forEach((c) => {
+        const item = document.createElement("div");
+        item.className = "inline-dropdown-item";
         item.textContent = c.name;
         item.dataset.canteenId = c.id;
         fragment.appendChild(item);
       });
   }
-    
+
   nodes.inlineDropdown.appendChild(fragment);
 }
 
@@ -782,7 +858,7 @@ async function resetMealsAndReload() {
   isOfflineError = false;
   hasNoData = false;
   await fetchAvailableDaysFromAPI();
-  renderDays(); 
+  renderDays();
   await loadMealsForDate(selectedDate);
   prefetchUpcomingDays();
 }
@@ -791,29 +867,29 @@ function getTwoWeeksDays() {
   const days = [];
   let current = new Date();
   let count = 0;
-  
+
   while (count < 10) {
     const dayOfWeek = current.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) { 
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
       const yyyy = current.getFullYear();
-      const mm = String(current.getMonth() + 1).padStart(2, '0');
-      const dd = String(current.getDate()).padStart(2, '0');
-      days.push({ 
+      const mm = String(current.getMonth() + 1).padStart(2, "0");
+      const dd = String(current.getDate()).padStart(2, "0");
+      days.push({
         date: `${yyyy}-${mm}-${dd}`,
-        closed: false 
+        closed: false,
       });
       count++;
     }
     current.setDate(current.getDate() + 1);
   }
-  return days; 
+  return days;
 }
 
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
-  
+
   availableDays = getTwoWeeksDays();
-  if (!selectedDate || !availableDays.some(d => d.date === selectedDate)) {
+  if (!selectedDate || !availableDays.some((d) => d.date === selectedDate)) {
     selectedDate = availableDays[0].date;
   }
 
@@ -822,22 +898,23 @@ async function fetchAvailableDaysFromAPI() {
     isOfflineError = false;
     hasNoData = false;
     renderStatus();
-    
+
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
     const res = await fetch(url);
     if (!res.ok) throw new Error();
-    
+
     const daysData = await res.json();
-    
-    availableDays.forEach(day => {
-      const apiDay = daysData.find(d => d.date === day.date);
+
+    availableDays.forEach((day) => {
+      const apiDay = daysData.find((d) => d.date === day.date);
       if (apiDay) {
-        day.closed = (apiDay.closed === true);
+        day.closed = apiDay.closed === true;
       }
     });
-
   } catch (err) {
-    console.warn("[Offline] Using generated fallback weekdays for the carousel.");
+    console.warn(
+      "[Offline] Using generated fallback weekdays for the carousel.",
+    );
     isOfflineError = true;
   }
 }
@@ -853,86 +930,96 @@ async function loadMealsForDate(date) {
 
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
-    
-    if (!res.ok) { 
-      meals = []; 
-      const dayMeta = availableDays.find(d => d.date === date);
+
+    if (!res.ok) {
+      meals = [];
+      const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
         hasNoData = true;
       }
-      return; 
+      return;
     }
-    
+
     meals = await res.json();
-    
+
     if (meals.length === 0) {
-      const dayMeta = availableDays.find(d => d.date === date);
+      const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
         hasNoData = true;
       }
     }
-  } catch { 
-    meals = []; 
-    isOfflineError = true; 
-  } finally { 
-    isLoading = false; 
-    render(); 
+  } catch {
+    meals = [];
+    isOfflineError = true;
+  } finally {
+    isLoading = false;
+    render();
   }
 }
 
 function renderDays() {
   if (!nodes.dayCarousel) return;
   const fragment = document.createDocumentFragment();
-  nodes.dayCarousel.innerHTML = '';
+  nodes.dayCarousel.innerHTML = "";
   if (availableDays.length === 0) return;
 
-  availableDays.forEach(day => {
+  availableDays.forEach((day) => {
     const d = new Date(day.date);
-    const wochentage = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    const wochentage = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
     const dayName = wochentage[d.getDay()];
     const dateStr = `${d.getDate()}.${d.getMonth() + 1}.`;
 
-    const btn = document.createElement('button');
-    btn.className = 'tag-button';
-    if (day.date === selectedDate) btn.classList.add('tag-aktiv');
-    
+    const btn = document.createElement("button");
+    btn.className = "tag-button";
+    if (day.date === selectedDate) btn.classList.add("tag-aktiv");
+
     btn.innerHTML = `
       <span class="day-name">${dayName}</span>
       <span class="day-date">${dateStr}</span>
     `;
 
-    btn.addEventListener('click', async () => {
-      if (selectedDate === day.date) return; 
+    btn.addEventListener("click", async () => {
+      if (selectedDate === day.date) return;
       selectedDate = day.date;
-      
-      nodes.dayCarousel.querySelectorAll('.tag-button').forEach(b => b.classList.remove('tag-aktiv'));
-      btn.classList.add('tag-aktiv');
+
+      nodes.dayCarousel
+        .querySelectorAll(".tag-button")
+        .forEach((b) => b.classList.remove("tag-aktiv"));
+      btn.classList.add("tag-aktiv");
       await loadMealsForDate(day.date);
     });
     fragment.appendChild(btn);
   });
-  
+
   nodes.dayCarousel.appendChild(fragment);
 }
 
 function renderSelectedDayTitle() {
   if (!nodes.selectedDayTitle) return;
   if (!selectedDate) {
-    nodes.selectedDayTitle.textContent = '';
+    nodes.selectedDayTitle.textContent = "";
     return;
   }
-  const parts = selectedDate.split('-'); 
+  const parts = selectedDate.split("-");
   if (parts.length === 3) {
     const d = new Date(parts[0], parts[1] - 1, parts[2]);
-    const wochentageLang = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    
+    const wochentageLang = [
+      "Sonntag",
+      "Montag",
+      "Dienstag",
+      "Mittwoch",
+      "Donnerstag",
+      "Freitag",
+      "Samstag",
+    ];
+
     const dayName = wochentageLang[d.getDay()];
     const dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
-    
+
     nodes.selectedDayTitle.textContent = `${dayName}  ${dateStr}`;
   } else {
     nodes.selectedDayTitle.textContent = selectedDate;
@@ -941,46 +1028,58 @@ function renderSelectedDayTitle() {
 
 function renderMeals() {
   if (!nodes.mealsList) return;
-  nodes.mealsList.innerHTML = '';
+  nodes.mealsList.innerHTML = "";
   if (isClosed || (isOfflineError && meals.length === 0) || hasNoData) return;
 
-  const filteredMeals = meals.filter(meal => {
+  const filteredMeals = meals.filter((meal) => {
     if (activeFilterKeywords.length === 0) return true;
-    const mealText = [meal.name, meal.category, ...(meal.notes || [])].join(' ').toLowerCase();
-    return activeFilterKeywords.some(keyword => mealText.includes(keyword));
+    const mealText = [meal.name, meal.category, ...(meal.notes || [])]
+      .join(" ")
+      .toLowerCase();
+    return activeFilterKeywords.some((keyword) => mealText.includes(keyword));
   });
 
   if (filteredMeals.length === 0 && meals.length > 0) {
-    nodes.mealsList.innerHTML = '<p style="color:#7f8c8d; text-align:center; font-family:Futura,sans-serif; margin-top:24px;">Keine Gerichte entsprechen den Filterkriterien.</p>';
+    nodes.mealsList.innerHTML =
+      '<p style="color:#7f8c8d; text-align:center; font-family:Futura,sans-serif; margin-top:24px;">Keine Gerichte entsprechen den Filterkriterien.</p>';
     return;
   }
 
   const fragment = document.createDocumentFragment();
 
   filteredMeals.forEach((meal, index) => {
-    const div = document.createElement('div');
-    div.className = 'gericht-karte';
-    
-    const priceVal = activePriceType === 'students' 
-      ? meal.prices.students 
-      : (meal.prices.employees || meal.prices.others || meal.prices.pupils);
+    const div = document.createElement("div");
+    div.className = "gericht-karte";
 
-    const formattedPrice = priceVal ? `${priceVal.toFixed(2).replace('.', ',')} €` : 'N/A';
-    
-    const cleanNotes = (meal.notes || []).filter(note => {
+    const priceVal =
+      activePriceType === "students"
+        ? meal.prices.students
+        : meal.prices.employees || meal.prices.others || meal.prices.pupils;
+
+    const formattedPrice = priceVal
+      ? `${priceVal.toFixed(2).replace(".", ",")} €`
+      : "N/A";
+
+    const cleanNotes = (meal.notes || []).filter((note) => {
       const n = note.toLowerCase();
-      return !n.includes('[vegan]') && !n.includes('[v]') && !n.includes('vegetarisch');
+      return (
+        !n.includes("[vegan]") &&
+        !n.includes("[v]") &&
+        !n.includes("vegetarisch")
+      );
     });
 
     const hasNotes = cleanNotes.length > 0;
     const uniqueId = `allergens-${index}`;
-    let allergenHtml = '';
-    let toggleBtn = '';
+    let allergenHtml = "";
+    let toggleBtn = "";
 
     if (hasNotes) {
-      const notesContent = cleanNotes.some(n => n.toLowerCase().includes('allergene'))
-        ? cleanNotes.map(n => `<div class="notes-line">${n}</div>`).join('')
-        : `<div class="notes-line"><b>Infos/Allergene:</b> ${cleanNotes.join(', ')}</div>`;
+      const notesContent = cleanNotes.some((n) =>
+        n.toLowerCase().includes("allergene"),
+      )
+        ? cleanNotes.map((n) => `<div class="notes-line">${n}</div>`).join("")
+        : `<div class="notes-line"><b>Infos/Allergene:</b> ${cleanNotes.join(", ")}</div>`;
 
       allergenHtml = `<div class="meal-notes" id="${uniqueId}">${notesContent}</div>`;
       toggleBtn = `<button class="toggle-details-btn" onclick="toggleAllergene('${uniqueId}', this)">▼</button>`;
@@ -1001,7 +1100,7 @@ function renderMeals() {
     `;
     fragment.appendChild(div);
   });
-  
+
   nodes.mealsList.appendChild(fragment);
 }
 
@@ -1009,13 +1108,13 @@ function renderStatus() {
   if (!nodes.statusDiv || !nodes.mealsList) return;
 
   if (isLoading) {
-    nodes.mealsList.classList.add('state-loading');
-    nodes.statusDiv.innerHTML = ''; 
+    nodes.mealsList.classList.add("state-loading");
+    nodes.statusDiv.innerHTML = "";
     return;
   }
-  
-  nodes.mealsList.classList.remove('state-loading');
-  
+
+  nodes.mealsList.classList.remove("state-loading");
+
   if (isOfflineError) {
     if (meals.length === 0) {
       nodes.statusDiv.innerHTML = `
@@ -1028,7 +1127,7 @@ function renderStatus() {
           </p>
         </div>
       `;
-      nodes.mealsList.innerHTML = '';
+      nodes.mealsList.innerHTML = "";
     } else {
       nodes.statusDiv.innerHTML = `
         <div style="text-align:center; margin-bottom: 12px;">
@@ -1049,7 +1148,7 @@ function renderStatus() {
         </p>
       </div>
     `;
-    nodes.mealsList.innerHTML = '';
+    nodes.mealsList.innerHTML = "";
   } else if (hasNoData) {
     nodes.statusDiv.innerHTML = `
       <div style="text-align:center; padding: 24px; font-family:Futura,sans-serif; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px auto; max-width: 90%;">
@@ -1061,24 +1160,26 @@ function renderStatus() {
         </p>
       </div>
     `;
-    nodes.mealsList.innerHTML = '';
+    nodes.mealsList.innerHTML = "";
   } else {
-    nodes.statusDiv.innerHTML = '';
+    nodes.statusDiv.innerHTML = "";
   }
 }
 
 function toggleAllergene(id, btn) {
   const liste = document.getElementById(id);
   if (!liste) return;
-  liste.classList.toggle('offen');
-  if (btn) btn.classList.toggle('offen');
+  liste.classList.toggle("offen");
+  if (btn) btn.classList.toggle("offen");
 }
 
 function prefetchUpcomingDays() {
   if (!availableDays || availableDays.length <= 1 || !canteenId) return;
-  const daysToPrefetch = availableDays.filter(day => day.date !== selectedDate);
+  const daysToPrefetch = availableDays.filter(
+    (day) => day.date !== selectedDate,
+  );
 
-  daysToPrefetch.forEach(day => {
+  daysToPrefetch.forEach((day) => {
     const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
     fetch(url).catch(() => {});
   });
@@ -1086,44 +1187,48 @@ function prefetchUpcomingDays() {
 
 function render() {
   renderStatus();
-  renderSelectedDayTitle(); 
+  renderSelectedDayTitle();
   renderMeals();
 }
 
 // ============================================================================
 // 5. INITIALISIERUNG
 // ============================================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   nodes = {
-    citySelect: document.getElementById('citySelect'),
-    dayCarousel: document.getElementById('dayCarousel'),
-    mealsList: document.getElementById('mealsList'),
-    statusDiv: document.getElementById('status'),
-    headerUniversityTitle: document.getElementById('headerUniversityTitle'),
-    headerCanteenTitle: document.getElementById('headerCanteenTitle'),
-    inlineDropdown: document.getElementById('inlineDropdown'),
-    appSidebar: document.getElementById('appSidebar'),
-    menuOverlay: document.getElementById('menuOverlay'),
-    dropdownSchliesser: document.getElementById('dropdownCloser'), 
-    headerCanteenTrigger: document.getElementById('headerCanteenTrigger'),
-    selectedDayTitle: document.getElementById('selectedDayTitle'),
-    infoHours: document.getElementById('infoHours'),
-    infoCanteenName: document.getElementById('infoCanteenName'),
-    infoAddress: document.getElementById('infoAddress'),
-    infoMapButton: document.getElementById('infoMapButton')
+    citySelect: document.getElementById("citySelect"),
+    dayCarousel: document.getElementById("dayCarousel"),
+    mealsList: document.getElementById("mealsList"),
+    statusDiv: document.getElementById("status"),
+    headerUniversityTitle: document.getElementById("headerUniversityTitle"),
+    headerCanteenTitle: document.getElementById("headerCanteenTitle"),
+    inlineDropdown: document.getElementById("inlineDropdown"),
+    appSidebar: document.getElementById("appSidebar"),
+    menuOverlay: document.getElementById("menuOverlay"),
+    dropdownSchliesser: document.getElementById("dropdownCloser"),
+    headerCanteenTrigger: document.getElementById("headerCanteenTrigger"),
+    selectedDayTitle: document.getElementById("selectedDayTitle"),
+    infoHours: document.getElementById("infoHours"),
+    infoCanteenName: document.getElementById("infoCanteenName"),
+    infoAddress: document.getElementById("infoAddress"),
+    infoMapButton: document.getElementById("infoMapButton"),
   };
 
   initEventListeners();
   setupInitialState();
 
   // Schließt Filter-Dropdowns bei Klick außerhalb
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.filter-dropdown-container')) {
-      document.querySelectorAll('.filter-dropdown-container').forEach(el => el.classList.remove('offen'));
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".filter-dropdown-container")) {
+      document
+        .querySelectorAll(".filter-dropdown-container")
+        .forEach((el) => el.classList.remove("offen"));
     }
   });
 
   // HardwareController Log-Eintrag zum Start
   const sys = HardwareController.getPlatformInfo();
-  HardwareController.logEvent(`App erfolgreich gestartet auf ${sys.browser} / ${sys.os}`);
+  HardwareController.logEvent(
+    `App erfolgreich gestartet auf ${sys.browser} / ${sys.os}`,
+  );
 });
