@@ -142,48 +142,113 @@ const HardwareController = {
 
   // 📷 KAMERA & QR SCANNER
   async checkCamera() {
-    const info = this.getPlatformInfo();
-    const video = document.getElementById('cameraStream');
-    const overlay = document.getElementById('cameraOverlay');
-    const btn = document.getElementById('btnCamera');
+  const info = this.getPlatformInfo();
 
-    this.logEvent(`Kamera-Test gestartet (${info.browser} / ${info.os})`);
+  const video = document.getElementById("cameraStream");
+  const overlay = document.getElementById("cameraOverlay");
+  const btn = document.getElementById("btnCamera");
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.showHardwareError("Kamera nicht unterstützt", info, "MediaDevices API fehlt in diesem Browser.");
-      return;
+  if (!video || !overlay || !btn) {
+    console.error("Kamera-Elemente wurden nicht gefunden.");
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    this.showHardwareError(
+      "Kamera nicht unterstützt",
+      info,
+      "Dieser Browser unterstützt keinen Kamerazugriff."
+    );
+    return;
+  }
+
+  try {
+    const isMobile =
+      info.os === "iOS" ||
+      info.os === "Android";
+
+    let stream;
+
+    if (isMobile) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "environment"
+            },
+            width: {
+              ideal: 1920
+            },
+            height: {
+              ideal: 1080
+            }
+          }
+        });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
+    } else {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
     }
 
-    try {
-      const isMobile = info.os === "iOS" || info.os === "Android";
-      let stream;
+    overlay.style.display = "flex";
 
-      if (isMobile) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        } catch (e) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        }
+    video.srcObject = stream;
+
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("autoplay", "true");
+    video.setAttribute("muted", "true");
+
+    await video.play();
+
+    await new Promise(resolve => {
+      if (
+        video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+      ) {
+        resolve();
       } else {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.addEventListener(
+          "loadedmetadata",
+          resolve,
+          { once: true }
+        );
       }
+    });
 
-      if (overlay) overlay.style.display = 'flex';
-      if (video) {
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true);
-        video.play();
-      }
-      if (btn) btn.classList.add('success');
+    console.log(
+      "Kamera gestartet:",
+      video.videoWidth,
+      "x",
+      video.videoHeight
+    );
 
-      this.logEvent("Kamera gestartet");
-      this.qrScanActive = true;
-      requestAnimationFrame(this.scanQRCode.bind(this));
+    this.showToast(
+      `Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`,
+      "info",
+      2000
+    );
 
-    } catch (err) {
-      this.showHardwareError("Kamera-Zugriff verweigert", info, err.message || err);
-    }
-  },
+    btn.classList.add("success");
+
+    this.qrScanActive = true;
+    requestAnimationFrame(
+      this.scanQRCode.bind(this)
+    );
+
+  } catch (err) {
+    this.showHardwareError(
+      "Kamerazugriff fehlgeschlagen",
+      info,
+      `Der Zugriff auf die Kamera wurde verweigert oder es wurde keine Kamera gefunden.\n(Details: ${
+        err.message || err
+      })`
+    );
+  }
+},
 
   scanQRCode() {
     if (!this.qrScanActive) return;
