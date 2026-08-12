@@ -273,9 +273,26 @@ const HardwareController = {
 
         if (code) {
           if (navigator.vibrate) navigator.vibrate(100);
-          this.logEvent(`QR Code erkannt: ${code.data}`);
-          this.showToast(`QR Code erkannt:\n${code.data}`, 'success');
+
+          const qrContent = code.data.trim();
+
+          this.logEvent(`QR-Code erkannt: ${qrContent}`);
           this.stopCamera();
+
+          if (/^https?:\/\//i.test(qrContent)) {
+            const openLink = confirm(
+              `QR-Code erkannt.\n\nMöchtest du die folgende Seite öffnen?\n\n${qrContent}`
+            );
+            if (openLink) {
+              window.open(qrContent, "_blank");
+            }
+
+          } else {
+            this.showToast(
+              `QR-Code erkannt:\n${qrContent}`,
+              "success"
+            );
+          }
           return;
         }
       }
