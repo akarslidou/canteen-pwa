@@ -204,7 +204,6 @@ const HardwareController = {
       video.setAttribute("muted", "true");
 
       await video.play();
-      console.log("Video:", video.videoWidth, video.videoHeight);
       this.logEvent(`Video: ${video.videoWidth}x${video.videoHeight}`);
 
       await new Promise((resolve) => {
@@ -274,7 +273,6 @@ const HardwareController = {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
       if (typeof jsQR !== "undefined") {
-        console.log(typeof jsQR);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
         });

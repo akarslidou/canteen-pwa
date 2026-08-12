@@ -36,22 +36,20 @@
       "
     >
       <button
-        onclick="
-          alert('X geklickt');
-          HardwareController.stopCamera();
-        "
+        onclick="HardwareController.stopCamera()"
         style="
           position: absolute;
           top: 20px;
           right: 20px;
-          z-index: 999999;
-          background: red;
-          color: white;
-          width: 60px;
-          height: 60px;
+          background: rgba(255, 255, 255, 0.2);
           border: none;
+          color: white;
+          width: 45px;
+          height: 45px;
           border-radius: 50%;
           font-size: 24px;
+          cursor: pointer;
+          z-index: 10001;
         "
       >
         ✕
