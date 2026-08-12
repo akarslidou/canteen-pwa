@@ -206,7 +206,7 @@ const HardwareController = {
       await video.play();
       console.log("Video:", video.videoWidth, video.videoHeight);
       this.logEvent(`Video: ${video.videoWidth}x${video.videoHeight}`);
-      
+
       await new Promise((resolve) => {
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           resolve();
@@ -258,7 +258,7 @@ const HardwareController = {
       return;
     }
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       if (!this.qrCanvas) {
         this.qrCanvas = document.createElement("canvas");
       }
@@ -274,6 +274,7 @@ const HardwareController = {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
       if (typeof jsQR !== "undefined") {
+        console.log(typeof jsQR);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
         });
@@ -307,6 +308,22 @@ const HardwareController = {
     }
 
     requestAnimationFrame(this.scanQRCode.bind(this));
+  },
+
+  stopCamera() {
+    this.qrScanActive = false;
+
+    const video = document.getElementById("cameraStream");
+    const overlay = document.getElementById("cameraOverlay");
+
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach((track) => track.stop());
+      video.srcObject = null;
+    }
+
+    if (overlay) {
+      overlay.style.display = "none";
+    }
   },
 
   // 📶 BLUETOOTH
