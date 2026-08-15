@@ -8,70 +8,8 @@ const HardwareController = {
   qrLastResult: null,
   qrConfirmations: 0,
 
-  // 📋 DEBUG LOG PANEL
-  ensureLogPanel() {
-    let panel = document.getElementById("hc-log-panel");
-    if (!panel) {
-      panel = document.createElement("div");
-      panel.id = "hc-log-panel";
-      panel.style.cssText = `
-        position: fixed; bottom: 16px; right: 16px; width: 280px; max-height: 180px;
-        overflow-y: auto; background: rgba(20, 20, 20, 0.92); color: #81e6d9;
-        font-family: monospace; font-size: 0.72rem; padding: 8px; border-radius: 8px;
-        z-index: 9998; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      `;
-      document.body.appendChild(panel);
-    }
-    return panel;
-  },
-
   logEvent(message) {
-    const time = new Date().toLocaleTimeString();
-    const entry = `[${time}] ${message}`;
-    this.eventLog.push(entry);
-    console.log(entry);
-
-    const panel = this.ensureLogPanel();
-    const line = document.createElement("div");
-    line.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
-    line.style.padding = "2px 0";
-    line.textContent = entry;
-    panel.appendChild(line);
-    panel.scrollTop = panel.scrollHeight;
-  },
-
-  toggleLogPanel() {
-    const panel = this.ensureLogPanel();
-    const isHidden = panel.style.display === "none" || !panel.style.display;
-    panel.style.display = isHidden ? "block" : "none";
-    this.showToast(
-      isHidden ? "🐞 Debug Panel aktiv" : "🙈 Debug Panel verdeckt",
-      "info",
-      1500,
-    );
-  },
-
-  async copyLogToClipboard() {
-    if (this.eventLog.length === 0) {
-      this.showToast("Log ist noch leer.", "info");
-      return;
-    }
-    const text = this.eventLog.join("\n");
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      this.showToast("📋 Log kopiert! Bereit zum Einfügen.", "success", 3000);
-    } catch (e) {
-      this.showToast("Fehler beim Kopieren des Logs.", "error");
-    }
+    console.log(message);
   },
 
   getPlatformInfo() {
@@ -288,22 +226,26 @@ const HardwareController = {
 
           this.stopCamera();
 
-          const seiteOeffnen = confirm(
+          const openSite = confirm(
             `QR-Code erfolgreich erkannt.\n\nInhalt:\n${qrContent}\n\nMöchtest du den Link jetzt öffnen?`,
           );
 
-          if (seiteOeffnen) {
+          if (openSite) {
             if (/^https?:\/\//i.test(qrContent)) {
               window.location.href = qrContent;
             } else {
-              this.showToast(`QR-Inhalt:\n${qrContent}`, "success", 5000);
+              this.showToast(
+                "QR-Code erfolgreich erkannt",
+                "success",
+                5000
+              );
             }
           }
 
           return;
         }
       }
-    }
+    }    
 
     requestAnimationFrame(this.scanQRCode.bind(this));
   },
@@ -610,7 +552,7 @@ const universityCanteens = {
   ],
   esslingen: [
     {
-      id: 1771,
+      id: 396,
       name: "Mensa Esslingen Stadtmitte",
       lat: 48.7381,
       lng: 9.3113,
@@ -619,7 +561,7 @@ const universityCanteens = {
       url: "https://www.openstreetmap.org/search?query=Mensa+Kanalstraße+Esslingen",
     },
     {
-      id: 1772,
+      id: 397,
       name: "Mensa Esslingen Flandernstraße",
       lat: 48.7483,
       lng: 9.3226,
@@ -641,7 +583,7 @@ const universityCanteens = {
   ],
   karlsruhe: [
     {
-      id: 1618,
+      id: 1719,
       name: "Mensa Am Adenauerring (KIT)",
       lat: 49.0118,
       lng: 8.417,
@@ -650,7 +592,7 @@ const universityCanteens = {
       url: "https://www.openstreetmap.org/search?query=Mensa+am+Adenauerring+Karlsruhe",
     },
     {
-      id: 1621,
+      id: 32,
       name: "Mensa Moltkestraße",
       lat: 49.0159,
       lng: 8.3905,
