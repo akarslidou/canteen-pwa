@@ -68,14 +68,10 @@ const HardwareController = {
             video: { facingMode: "environment" },
           });
         } catch (e) {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-          });
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
       } else {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
       overlay.style.display = "flex";
@@ -86,35 +82,19 @@ const HardwareController = {
       video.setAttribute("muted", "true");
 
       await video.play();
-      this.logEvent(`Video: ${video.videoWidth}x${video.videoHeight}`);
-
-      await new Promise((resolve) => {
-        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-          resolve();
-        } else {
-          video.addEventListener("loadedmetadata", resolve, { once: true });
-        }
-      });
-
-      console.log(
-        "Kamera gestartet:",
-        video.videoWidth,
-        "x",
-        video.videoHeight,
-      );
 
       btn.classList.add("success");
-      alert(`Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`);
-
       this.qrScanActive = true;
+
+      // Scan-Schleife starten (OHNE blockierendes alert!)
       requestAnimationFrame(this.scanQRCode.bind(this));
+
     } catch (err) {
+      this.stopCamera();
       this.showHardwareError(
         "Kamerazugriff fehlgeschlagen",
         info,
-        `Der Zugriff auf die Kamera wurde verweigert oder es wurde keine Kamera gefunden.\n(Details: ${
-          err.message || err
-        })`,
+        `Zugriff verweigert oder keine Kamera gefunden.`
       );
     }
   },
@@ -157,16 +137,22 @@ const HardwareController = {
           }
 
           this.logEvent(`QR-Code erkannt: ${targetUrl}`);
+
+          // 1. Kamera sofort schließen
           this.stopCamera();
 
+          // 2. URL aufbereiten
           if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith('/')) {
             targetUrl = 'https://' + targetUrl;
           }
 
-          const userApproved = confirm(`QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`);
-          if (userApproved) {
-            window.location.replace(targetUrl);
-          }
+          // 3. Nach Schließen der Kamera fragen
+          setTimeout(() => {
+            const openPage = confirm(`QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`);
+            if (openPage) {
+              window.location.href = targetUrl;
+            }
+          }, 100);
 
           return;
         }
@@ -174,22 +160,6 @@ const HardwareController = {
     }    
 
     requestAnimationFrame(this.scanQRCode.bind(this));
-  },
-
-  stopCamera() {
-    this.qrScanActive = false;
-
-    const video = document.getElementById("cameraStream");
-    const overlay = document.getElementById("cameraOverlay");
-
-    if (video && video.srcObject) {
-      video.srcObject.getTracks().forEach((track) => track.stop());
-      video.srcObject = null;
-    }
-
-    if (overlay) {
-      overlay.style.display = "none";
-    }
   },
 
   // 📶 BLUETOOTH
