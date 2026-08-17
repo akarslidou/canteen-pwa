@@ -344,7 +344,7 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(12px, 3.5vw, 24px);
+  gap: clamp(8px, 2vw, 16px); 
   margin: 16px 0 28px 0;
   width: 100%;
 }
@@ -357,15 +357,25 @@ header {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  overflow: hidden;
+  
+  overflow-x: auto;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch; 
+  
   gap: var(--gap-size);
   padding: 12px 8px;
   scroll-behavior: smooth;
   width: 100%;
 }
+
 #dayCarousel::-webkit-scrollbar {
   display: none;
 }
+#dayCarousel {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .tag-button {
   flex: 0 0 var(--circle-size);
   width: var(--circle-size);
@@ -393,12 +403,12 @@ header {
   padding: 4px;
 }
 .tag-button .day-name {
-  font-size: clamp(11px, 1.4vw, 15px);
+  font-size: clamp(10px, 1.3vw, 14px);
   font-weight: 700;
   text-transform: uppercase;
 }
 .tag-button .day-date {
-  font-size: clamp(8px, 1.1vw, 11px);
+  font-size: clamp(8px, 1vw, 10px);
   opacity: 0.7;
   margin-top: 1px;
 }
@@ -413,8 +423,8 @@ header {
   background: #000000;
   border: none;
   border-radius: 8px;
-  width: 40px;
-  height: 40px;
+  width: 36px; 
+  height: 36px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -438,14 +448,13 @@ header {
   line-height: 1.2;
 }
 
-/* Mobile adaptation: Display exactly 4 elements */
 @media (max-width: 600px) {
   :root {
-    --circle-size: clamp(52px, 18vw, 72px);
-    --gap-size: clamp(8px, 3vw, 12px);
+    --circle-size: clamp(42px, 11vw, 48px); 
+    --gap-size: 6px;
   }
   .carousel-view-window {
-    width: calc(4 * var(--circle-size) + 3 * var(--gap-size) + 16px);
+    width: calc(4 * var(--circle-size) + 3 * var(--gap-size) + 12px);
   }
 }
 
