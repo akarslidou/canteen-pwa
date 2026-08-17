@@ -33,7 +33,9 @@ const HardwareController = {
 
   showHardwareError(title, systemInfo, reason) {
     this.logEvent(`ERROR: ${title} — ${reason}`);
-    alert(`⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n\nGrund: ${reason}`);
+    alert(
+      `⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n\nGrund: ${reason}`,
+    );
   },
 
   // 📷 KAMERA & QR SCANNER
@@ -86,15 +88,13 @@ const HardwareController = {
       btn.classList.add("success");
       this.qrScanActive = true;
 
-      // Scan-Schleife starten (OHNE blockierendes alert!)
       requestAnimationFrame(this.scanQRCode.bind(this));
-
     } catch (err) {
       this.stopCamera();
       this.showHardwareError(
         "Kamerazugriff fehlgeschlagen",
         info,
-        `Zugriff verweigert oder keine Kamera gefunden.`
+        `Zugriff verweigert oder keine Kamera gefunden.`,
       );
     }
   },
@@ -104,7 +104,12 @@ const HardwareController = {
 
     const video = document.getElementById("cameraStream");
 
-    if (!video || !video.videoWidth || !video.videoHeight) {
+    if (!video) {
+      requestAnimationFrame(this.scanQRCode.bind(this));
+      return;
+    }
+
+    if (!video.videoWidth || !video.videoHeight) {
       requestAnimationFrame(this.scanQRCode.bind(this));
       return;
     }
@@ -132,23 +137,25 @@ const HardwareController = {
         if (code && code.data) {
           let targetUrl = code.data.trim();
 
+          console.log("QR erkannt:", targetUrl);
+
           if (navigator.vibrate) {
             navigator.vibrate(100);
           }
 
           this.logEvent(`QR-Code erkannt: ${targetUrl}`);
 
-          // 1. Kamera sofort schließen
           this.stopCamera();
 
-          // 2. URL aufbereiten
-          if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith('/')) {
-            targetUrl = 'https://' + targetUrl;
+          if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith("/")) {
+            targetUrl = "https://" + targetUrl;
           }
 
-          // 3. Nach Schließen der Kamera fragen
           setTimeout(() => {
-            const openPage = confirm(`QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`);
+            const openPage = confirm(
+              `QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`,
+            );
+
             if (openPage) {
               window.location.href = targetUrl;
             }
@@ -157,7 +164,7 @@ const HardwareController = {
           return;
         }
       }
-    }    
+    }
 
     requestAnimationFrame(this.scanQRCode.bind(this));
   },
