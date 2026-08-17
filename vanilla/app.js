@@ -216,30 +216,28 @@ const HardwareController = {
         });
 
         if (code && code.data) {
-          const qrContent = code.data.trim();
+          let qrContent = code.data.trim();
 
           if (navigator.vibrate) {
             navigator.vibrate(100);
           }
 
           this.logEvent(`QR-Code erkannt: ${qrContent}`);
-
           this.stopCamera();
 
-          const openSite = confirm(
-            `QR-Code erfolgreich erkannt.\n\nInhalt:\n${qrContent}\n\nMöchtest du den Link jetzt öffnen?`,
-          );
+          if (/^www\./i.test(qrContent)) {
+            qrContent = "https://" + qrContent;
+          } else if (!/^https?:\/\//i.test(qrContent) && qrContent.includes(".")) {
+            qrContent = "https://" + qrContent;
+          }
 
-          if (openSite) {
-            if (/^https?:\/\//i.test(qrContent)) {
-              window.location.href = qrContent;
-            } else {
-              this.showToast(
-                "QR-Code erfolgreich erkannt",
-                "success",
-                5000
-              );
-            }
+          const isUrl = /^https?:\/\//i.test(qrContent) || qrContent.startsWith("/") || qrContent.startsWith("./");
+
+          if (isUrl) {
+            this.showToast("Wird geöffnet...", "info", 1000);
+            window.location.href = qrContent;
+          } else {
+            this.showToast(`Erkannter Text:\n${qrContent}`, "info", 4000);
           }
 
           return;
