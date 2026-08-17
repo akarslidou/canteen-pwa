@@ -85,6 +85,17 @@ const HardwareController = {
 
       await video.play();
 
+      await new Promise((resolve) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+        } else {
+          video.addEventListener("loadedmetadata", resolve, {
+            once: true,
+          });
+        }
+      });
+
+
       btn.classList.add("success");
       this.qrScanActive = true;
 
