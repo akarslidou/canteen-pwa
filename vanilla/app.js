@@ -183,7 +183,7 @@ scanQRCode() {
           );
 
           if (openPage) {
-            window.open(targetUrl, "_blank", "noopener,noreferrer");
+            window.location.href = targetUrl;         
           }
         }, 100);
 
