@@ -31,61 +31,9 @@ const HardwareController = {
     return { os, browser };
   },
 
-  ensureToastContainer() {
-    let container = document.getElementById("hc-toast-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "hc-toast-container";
-      container.style.cssText = `
-        position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-        z-index: 9999; display: flex; flex-direction: column; gap: 8px;
-        align-items: center; pointer-events: none;
-      `;
-      document.body.appendChild(container);
-    }
-    return container;
-  },
-
-  showToast(message, type = "info", duration = 4000) {
-    const container = this.ensureToastContainer();
-    const toast = document.createElement("div");
-
-    const colors = {
-      success: { bg: "#f0fff4", border: "#9ae6b4", text: "#22543d" },
-      error: { bg: "#fff5f5", border: "#feb2b2", text: "#822727" },
-      info: { bg: "#ebf8ff", border: "#90cdf4", text: "#2a4365" },
-    };
-    const c = colors[type] || colors.info;
-
-    toast.style.cssText = `
-      background: ${c.bg}; border: 1px solid ${c.border}; color: ${c.text};
-      padding: 10px 16px; border-radius: 8px; font-family: sans-serif; font-size: 0.9rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 90vw; text-align: center;
-      pointer-events: auto; opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease;
-      transform: translateY(-8px); white-space: pre-line;
-    `;
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-      toast.style.transform = "translateY(0)";
-    });
-
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(-8px)";
-      setTimeout(() => toast.remove(), 250);
-    }, duration);
-  },
-
   showHardwareError(title, systemInfo, reason) {
     this.logEvent(`ERROR: ${title} — ${reason}`);
-    this.showToast(
-      `⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n${reason}`,
-      "error",
-      5000,
-    );
+    alert(`⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n\nGrund: ${reason}`);
   },
 
   // 📷 KAMERA & QR SCANNER
@@ -112,15 +60,12 @@ const HardwareController = {
 
     try {
       const isMobile = info.os === "iOS" || info.os === "Android";
-
       let stream;
 
       if (isMobile) {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: "environment",
-            },
+            video: { facingMode: "environment" },
           });
         } catch (e) {
           stream = await navigator.mediaDevices.getUserMedia({
@@ -134,7 +79,6 @@ const HardwareController = {
       }
 
       overlay.style.display = "flex";
-
       video.srcObject = stream;
 
       video.setAttribute("playsinline", "true");
@@ -159,13 +103,8 @@ const HardwareController = {
         video.videoHeight,
       );
 
-      this.showToast(
-        `Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`,
-        "info",
-        2000,
-      );
-
       btn.classList.add("success");
+      alert(`Kamera gestartet (${video.videoWidth} × ${video.videoHeight})`);
 
       this.qrScanActive = true;
       requestAnimationFrame(this.scanQRCode.bind(this));
@@ -185,12 +124,7 @@ const HardwareController = {
 
     const video = document.getElementById("cameraStream");
 
-    if (!video) {
-      requestAnimationFrame(this.scanQRCode.bind(this));
-      return;
-    }
-
-    if (!video.videoWidth || !video.videoHeight) {
+    if (!video || !video.videoWidth || !video.videoHeight) {
       requestAnimationFrame(this.scanQRCode.bind(this));
       return;
     }
@@ -223,16 +157,16 @@ const HardwareController = {
           }
 
           this.logEvent(`QR-Code erkannt: ${targetUrl}`);
-          
           this.stopCamera();
 
           if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith('/')) {
             targetUrl = 'https://' + targetUrl;
           }
 
-          setTimeout(() => {
+          const userApproved = confirm(`QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`);
+          if (userApproved) {
             window.location.replace(targetUrl);
-          }, 0);
+          }
 
           return;
         }
@@ -285,10 +219,7 @@ const HardwareController = {
 
       if (btn) btn.classList.add("success");
       this.logEvent(`Bluetooth verbunden: ${device.name || "Unbenannt"}`);
-      this.showToast(
-        `✅ Verbunden mit "${device.name || "Unbenannt"}"`,
-        "success",
-      );
+      alert(`✅ Verbunden mit "${device.name || "Unbenannt"}"`);
       setTimeout(() => btn && btn.classList.remove("success"), 3000);
     } catch (err) {
       if (
@@ -330,10 +261,7 @@ const HardwareController = {
 
         if (btn) btn.classList.add("success");
         this.logEvent(`GPS empfangen: Lat ${lat}, Lng ${lng}`);
-        this.showToast(
-          `📍 Position ermittelt!\nLat: ${lat}, Lng: ${lng}`,
-          "success",
-        );
+        alert(`📍 Position ermittelt!\nLat: ${lat}, Lng: ${lng}`);
         setTimeout(() => btn && btn.classList.remove("success"), 3000);
       },
       (err) => {
@@ -378,10 +306,7 @@ const HardwareController = {
       await ndef.scan();
 
       this.logEvent("NFC-Scan aktiv — warte auf Tag...");
-      this.showToast(
-        "NFC-Scan aktiv — halte einen NFC-Tag an dein Smartphone.",
-        "info",
-      );
+      alert("NFC-Scan aktiv — halte einen NFC-Tag an dein Smartphone.");
 
       ndef.addEventListener("readingerror", () => {
         this.showHardwareError(
@@ -393,10 +318,7 @@ const HardwareController = {
 
       ndef.addEventListener("reading", ({ serialNumber }) => {
         this.logEvent(`NFC Tag gelesen: ${serialNumber}`);
-        this.showToast(
-          `NFC Tag gelesen!\nSeriennummer: ${serialNumber}`,
-          "success",
-        );
+        alert(`NFC Tag gelesen!\nSeriennummer: ${serialNumber}`);
       });
     } catch (error) {
       this.showHardwareError("NFC Fehler", info, error.message || error);
@@ -405,16 +327,13 @@ const HardwareController = {
 
   simulateNFCScan() {
     this.logEvent("SIMULIERTER NFC Scan gestartet");
-    this.showToast("⚠️ Simulierter Scan...", "info", 1500);
+    alert("⚠️ Simulierter NFC Scan gestartet...");
 
     setTimeout(() => {
       const fakeSerial = "04:A2:B1:" + Math.floor(1000 + Math.random() * 9000);
       this.logEvent(`SIMULIERTER Tag gelesen: ${fakeSerial}`);
-      this.showToast(
-        `NFC Tag gelesen! (simuliert)\nSeriennummer: ${fakeSerial}`,
-        "success",
-      );
-    }, 1000);
+      alert(`NFC Tag gelesen! (simuliert)\nSeriennummer: ${fakeSerial}`);
+    }, 500);
   },
 };
 
