@@ -984,3 +984,26 @@ select {
 #cameraOverlay button {
   z-index: 10000;
 }
+
+.qr-banner {
+  display: none;
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #007AFF;
+  color: white;
+  padding: 14px 24px;
+  border-radius: 30px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  cursor: pointer;
+  text-align: center;
+}
+
+/* Wird von JS aktiviert */
+.qr-banner.aktiv {
+  display: block;
+}

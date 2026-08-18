@@ -172,20 +172,23 @@ scanQRCode() {
 
         this.stopCamera();
 
-        // Falls keine vollständige URL vorhanden ist, https:// ergänzen
         if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith("/")) {
           targetUrl = "https://" + targetUrl;
         }
 
-        setTimeout(() => {
-          const openPage = confirm(
-            `QR-Code erkannt:\n\n${targetUrl}\n\nMöchtest du die Seite jetzt öffnen?`
-          );
+        const qrBanner = document.getElementById("qr-banner");
+        const qrBannerText = document.getElementById("qr-banner-text");
 
-          if (openPage) {
-            window.location.href = targetUrl;         
-          }
-        }, 100);
+        if (qrBanner && qrBannerText) {
+          qrBannerText.textContent = `Öffnen: ${targetUrl}`;
+          qrBanner.classList.add("aktiv");
+
+          qrBanner.onclick = () => {
+            window.location.href = targetUrl;
+          };
+        } else {
+          window.location.href = targetUrl;
+        }
 
         return;
       }
