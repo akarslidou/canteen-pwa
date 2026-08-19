@@ -774,6 +774,7 @@ function updateCanteenDropdown(uniKey) {
 
 async function resetMealsAndReload() {
   meals = [];
+  mealsCache.clear();
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
@@ -804,6 +805,7 @@ function getTwoWeeksDays() {
   }
   return days;
 }
+const mealsCache = new Map();
 
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
@@ -811,6 +813,12 @@ async function fetchAvailableDaysFromAPI() {
   availableDays = getTwoWeeksDays();
   if (!selectedDate || !availableDays.some((d) => d.date === selectedDate)) {
     selectedDate = availableDays[0].date;
+  }
+
+  if (!navigator.onLine) {
+    isOfflineError = true;
+    renderStatus();
+    return;
   }
 
   try {
@@ -832,50 +840,110 @@ async function fetchAvailableDaysFromAPI() {
       }
     });
   } catch (err) {
+    console.warn("[Offline] Generierte Wochentage werden genutzt.");
     console.warn(
       "[Offline] Using generated fallback weekdays for the carousel.",
     );
     isOfflineError = true;
+  } finally {
+    isLoading = false;
+    renderStatus();
   }
+}
+
+function prefetchUpcomingDays() {
+  if (!navigator.onLine || !availableDays || !canteenId) return;
+
+  availableDays.forEach((day) => {
+    const cacheKey = `${canteenId}_${day.date}`;
+    if (day.date !== selectedDate && !day.closed && !mealsCache.has(cacheKey)) {
+      const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
+      fetch(url)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) mealsCache.set(cacheKey, data);
+        })
+        .catch(() => {});
+    }
+  });
 }
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
-  const cacheKey = `mensa_meals_${canteenId}_${date}`;
 
+  const cacheKey = `${canteenId}_${date}`;
+
+  // 1. Sofortige Auswertung im Offline-Fall
+  if (!navigator.onLine) {
+    isLoading = false;
+    isOfflineError = true;
+    meals = mealsCache.get(cacheKey) || [];
+    render();
+    return;
+  }
+
+  // 2. Cache-Hit: Sofort rendern ohne Lade-Animation oder Fetch
+  if (mealsCache.has(cacheKey)) {
+    meals = mealsCache.get(cacheKey);
+    isLoading = false;
   try {
     isLoading = true;
     isClosed = false;
     isOfflineError = false;
+    hasNoData = meals.length === 0;
+    render();
+    return;
+  }
+
+  // 3. Fallback: Bei Netzwerk-Anfrage Ladezustand anzeigen
+  meals = [];
+  isLoading = true;
+  isClosed = false;
+  isOfflineError = false;
+  hasNoData = false;
+  render();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
     hasNoData = false;
     renderStatus();
 
+  try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const res = await fetch(url);
 
     if (!res.ok) {
+      const dayMeta = availableDays?.find((d) => d.date === date);
       meals = [];
       const dayMeta = availableDays.find((d) => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
         hasNoData = true;
-      if (dayMeta && dayMeta.closed) isClosed = true;
-      else hasNoData = true;
+      }
       return;
     }
 
     meals = await res.json();
-    
-    localStorage.setItem(cacheKey, JSON.stringify(meals));
+    mealsCache.set(cacheKey, meals); 
 
-  } catch (err) {
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData) {
-      meals = JSON.parse(cachedData);
-      isOfflineError = true;
-    } else {
-      meals = [];
-      isOfflineError = true;
+    if (meals.length === 0) {
+      hasNoData = true;
+      const dayMeta = availableDays.find((d) => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
+        hasNoData = true;
+      }
     }
+  } catch (err) {
+  } catch {
+    meals = [];
+    isOfflineError = true;
   } finally {
+    clearTimeout(timeoutId);
     isLoading = false;
     render();
   }
@@ -1137,6 +1205,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
   setupInitialState();
 
+  // Schließt Filter-Dropdowns bei Klick außerhalb
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".filter-dropdown-container")) {
       document
