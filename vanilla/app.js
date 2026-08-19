@@ -813,6 +813,11 @@ async function fetchAvailableDaysFromAPI() {
     selectedDate = availableDays[0].date;
   }
 
+  if (!navigator.onLine) {
+    isOfflineError = true;
+    return;
+  }
+
   try {
     isLoading = true;
     isOfflineError = false;
@@ -820,7 +825,8 @@ async function fetchAvailableDaysFromAPI() {
     renderStatus();
 
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
-    const res = await fetch(url);
+    
+    const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
     if (!res.ok) throw new Error();
 
     const daysData = await res.json();
@@ -841,6 +847,15 @@ async function fetchAvailableDaysFromAPI() {
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
+
+  if (!navigator.onLine) {
+    meals = [];
+    isOfflineError = true;
+    isLoading = false;
+    render();
+    return;
+  }
+
   try {
     isLoading = true;
     isClosed = false;
@@ -849,7 +864,8 @@ async function loadMealsForDate(date) {
     renderStatus();
 
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
-    const res = await fetch(url);
+    
+    const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
 
     if (!res.ok) {
       meals = [];
@@ -1094,14 +1110,14 @@ function toggleAllergene(id, btn) {
 }
 
 function prefetchUpcomingDays() {
-  if (!availableDays || availableDays.length <= 1 || !canteenId) return;
+  if (!availableDays || availableDays.length <= 1 || !canteenId || !navigator.onLine) return;
   const daysToPrefetch = availableDays.filter(
     (day) => day.date !== selectedDate,
   );
 
   daysToPrefetch.forEach((day) => {
     const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-    fetch(url).catch(() => {});
+    fetch(url, { signal: AbortSignal.timeout(1000) }).catch(() => {});
   });
 }
 
