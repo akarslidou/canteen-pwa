@@ -1,3 +1,4 @@
+@ -1,1155 +1,1165 @@
 // ============================================================================
 // 1. HARDWARE CONTROLLER (Kamera, GPS, Bluetooth, Web NFC, Debug-Panel)
 // ============================================================================
@@ -774,7 +775,6 @@ function updateCanteenDropdown(uniKey) {
 
 async function resetMealsAndReload() {
   meals = [];
-  mealsCache.clear();
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
@@ -805,7 +805,6 @@ function getTwoWeeksDays() {
   }
   return days;
 }
-const mealsCache = new Map();
 
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
@@ -813,12 +812,6 @@ async function fetchAvailableDaysFromAPI() {
   availableDays = getTwoWeeksDays();
   if (!selectedDate || !availableDays.some((d) => d.date === selectedDate)) {
     selectedDate = availableDays[0].date;
-  }
-
-  if (!navigator.onLine) {
-    isOfflineError = true;
-    renderStatus();
-    return;
   }
 
   try {
@@ -840,74 +833,28 @@ async function fetchAvailableDaysFromAPI() {
       }
     });
   } catch (err) {
-    console.warn("[Offline] Generierte Wochentage werden genutzt.");
+    console.warn(
+      "[Offline] Using generated fallback weekdays for the carousel.",
+    );
     isOfflineError = true;
-  } finally {
-    isLoading = false;
-    renderStatus();
   }
-}
-
-function prefetchUpcomingDays() {
-  if (!navigator.onLine || !availableDays || !canteenId) return;
-
-  availableDays.forEach((day) => {
-    const cacheKey = `${canteenId}_${day.date}`;
-    if (day.date !== selectedDate && !day.closed && !mealsCache.has(cacheKey)) {
-      const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-      fetch(url)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) mealsCache.set(cacheKey, data);
-        })
-        .catch(() => {});
-    }
-  });
 }
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
-
-  const cacheKey = `${canteenId}_${date}`;
-
-  // 1. Sofortige Auswertung im Offline-Fall
-  if (!navigator.onLine) {
-    isLoading = false;
-    isOfflineError = true;
-    meals = mealsCache.get(cacheKey) || [];
-    render();
-    return;
-  }
-
-  // 2. Cache-Hit: Sofort rendern ohne Lade-Animation oder Fetch
-  if (mealsCache.has(cacheKey)) {
-    meals = mealsCache.get(cacheKey);
-    isLoading = false;
+  try {
+    isLoading = true;
     isClosed = false;
     isOfflineError = false;
-    hasNoData = meals.length === 0;
-    render();
-    return;
-  }
+    hasNoData = false;
+    renderStatus();
 
-  // 3. Fallback: Bei Netzwerk-Anfrage Ladezustand anzeigen
-  meals = [];
-  isLoading = true;
-  isClosed = false;
-  isOfflineError = false;
-  hasNoData = false;
-  render();
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-  try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const res = await fetch(url);
 
     if (!res.ok) {
-      const dayMeta = availableDays?.find((d) => d.date === date);
+      meals = [];
+      const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
@@ -917,15 +864,19 @@ async function loadMealsForDate(date) {
     }
 
     meals = await res.json();
-    mealsCache.set(cacheKey, meals); 
 
     if (meals.length === 0) {
-      hasNoData = true;
+      const dayMeta = availableDays.find((d) => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
+        hasNoData = true;
+      }
     }
-  } catch (err) {
+  } catch {
+    meals = [];
     isOfflineError = true;
   } finally {
-    clearTimeout(timeoutId);
     isLoading = false;
     render();
   }
@@ -1141,6 +1092,18 @@ function toggleAllergene(id, btn) {
   if (!liste) return;
   liste.classList.toggle("offen");
   if (btn) btn.classList.toggle("offen");
+}
+
+function prefetchUpcomingDays() {
+  if (!availableDays || availableDays.length <= 1 || !canteenId) return;
+  const daysToPrefetch = availableDays.filter(
+    (day) => day.date !== selectedDate,
+  );
+
+  daysToPrefetch.forEach((day) => {
+    const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
+    fetch(url).catch(() => {});
+  });
 }
 
 function render() {
