@@ -14,210 +14,222 @@ const HardwareController = {
 
   getPlatformInfo() {
     const ua = navigator.userAgent;
-    let os = "Unknown OS";
-    let browser = "Unknown Browser";
+    let os = "Unbekanntes OS";
+    let appInfo = "Unbekannter Browser";
 
+    // OS bestimmen
     if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
     else if (/Android/i.test(ua)) os = "Android";
     else if (/Macintosh/i.test(ua)) os = "macOS";
     else if (/Windows/i.test(ua)) os = "Windows";
-    else if (/Linux/i.test(ua)) os = "Linux";
 
-    if (/Chrome|CriOS/i.test(ua) && !/Edg/i.test(ua)) browser = "Chrome";
-    else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
-    else if (/Firefox|FxiOS/i.test(ua)) browser = "Firefox";
-    else if (/Edg/i.test(ua)) browser = "Edge";
+    const isPWA =
+      window.navigator.standalone ||
+      window.matchMedia("(display-mode: standalone)").matches;
 
-    return { os, browser };
+    // System/Engine-Zuordnung
+    if (os === "iOS") {
+      appInfo = isPWA ? "Home-Bildschirm PWA (WebKit)" : "iOS Browser (WebKit)";
+    } else {
+      if (/Chrome/i.test(ua))
+        appInfo = isPWA ? "Chrome PWA (Blink)" : "Chrome (Blink)";
+      else if (/Firefox/i.test(ua)) appInfo = "Firefox (Gecko)";
+      else if (/Edg/i.test(ua)) appInfo = "Edge (Blink)";
+      else appInfo = "Browser";
+    }
+
+    return { os, appInfo };
   },
 
-  showHardwareError(title, systemInfo, reason) {
+  showHardwareError(title, info, reason) {
     this.logEvent(`ERROR: ${title} — ${reason}`);
     alert(
-      `⚠️ ${title}\n${systemInfo.browser} auf ${systemInfo.os}\n\nGrund: ${reason}`,
+      `⚠️ ${title}\n` +
+        `System: ${info.os} (${info.appInfo})\n\n` +
+        `Grund: ${reason}`,
     );
   },
 
   // 📷 KAMERA & QR SCANNER
-async checkCamera() {
-  const info = this.getPlatformInfo();
+  async checkCamera() {
+    const info = this.getPlatformInfo();
 
-  const video = document.getElementById("cameraStream");
-  const overlay = document.getElementById("cameraOverlay");
-  const btn = document.getElementById("btnCamera");
+    const video = document.getElementById("cameraStream");
+    const overlay = document.getElementById("cameraOverlay");
+    const btn = document.getElementById("btnCamera");
 
-  if (!video || !overlay || !btn) {
-    console.error("Kamera-Elemente wurden nicht gefunden.");
-    return;
-  }
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    this.showHardwareError(
-      "Kamera nicht unterstützt",
-      info,
-      "Dieser Browser unterstützt keinen Kamerazugriff."
-    );
-    return;
-  }
-
-  if (typeof jsQR === "undefined") {
-    this.showHardwareError(
-      "QR Scanner nicht geladen",
-      info,
-      "Die jsQR-Bibliothek wurde nicht gefunden. Bitte jsQR im HTML einbinden."
-    );
-    return;
-  }
-
-  try {
-    const isMobile = info.os === "iOS" || info.os === "Android";
-    let stream;
-
-    if (isMobile) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }
-        });
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true
-        });
-      }
-    } else {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: true
-      });
+    if (!video || !overlay || !btn) {
+      console.error("Kamera-Elemente wurden nicht gefunden.");
+      return;
     }
 
-    overlay.style.display = "flex";
-    video.srcObject = stream;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.showHardwareError(
+        "Kamera nicht unterstützt",
+        info,
+        "Dieser Browser unterstützt keinen Kamerazugriff.",
+      );
+      return;
+    }
 
-    video.setAttribute("playsinline", "true");
-    video.setAttribute("autoplay", "true");
-    video.setAttribute("muted", "true");
+    if (typeof jsQR === "undefined") {
+      this.showHardwareError(
+        "QR Scanner nicht geladen",
+        info,
+        "Die jsQR-Bibliothek wurde nicht gefunden. Bitte jsQR im HTML einbinden.",
+      );
+      return;
+    }
 
-    await video.play();
+    try {
+      const isMobile = info.os === "iOS" || info.os === "Android";
+      let stream;
 
-    await new Promise((resolve) => {
-      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        resolve();
+      if (isMobile) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          });
+        } catch (e) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        }
       } else {
-        video.addEventListener("loadedmetadata", resolve, {
-          once: true
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
         });
       }
-    });
 
-    btn.classList.add("success");
-    this.qrScanActive = true;
+      overlay.style.display = "flex";
+      video.srcObject = stream;
 
-    requestAnimationFrame(this.scanQRCode.bind(this));
-  } catch (err) {
-    this.stopCamera();
+      video.setAttribute("playsinline", "true");
+      video.setAttribute("autoplay", "true");
+      video.setAttribute("muted", "true");
 
-    this.showHardwareError(
-      "Kamerazugriff fehlgeschlagen",
-      info,
-      "Zugriff verweigert oder keine Kamera gefunden."
-    );
-  }
-},
+      await video.play();
 
-scanQRCode() {
-  if (!this.qrScanActive) return;
-
-  const video = document.getElementById("cameraStream");
-
-  if (!video) {
-    requestAnimationFrame(this.scanQRCode.bind(this));
-    return;
-  }
-
-  if (!video.videoWidth || !video.videoHeight) {
-    requestAnimationFrame(this.scanQRCode.bind(this));
-    return;
-  }
-
-  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-    if (!this.qrCanvas) {
-      this.qrCanvas = document.createElement("canvas");
-    }
-
-    const canvas = this.qrCanvas;
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    if (typeof jsQR !== "undefined") {
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert"
+      await new Promise((resolve) => {
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+          resolve();
+        } else {
+          video.addEventListener("loadedmetadata", resolve, {
+            once: true,
+          });
+        }
       });
 
-      if (code && code.data) {
-        this.qrScanActive = false;
+      btn.classList.add("success");
+      this.qrScanActive = true;
 
-        let targetUrl = code.data.trim();
+      requestAnimationFrame(this.scanQRCode.bind(this));
+    } catch (err) {
+      this.stopCamera();
 
-        console.log("QR erkannt:", targetUrl);
-        this.logEvent(`QR-Code erkannt: ${targetUrl}`);
+      this.showHardwareError(
+        "Kamerazugriff fehlgeschlagen",
+        info,
+        "Zugriff verweigert oder keine Kamera gefunden.",
+      );
+    }
+  },
 
-        if (navigator.vibrate) {
-          navigator.vibrate(100);
-        }
+  scanQRCode() {
+    if (!this.qrScanActive) return;
 
-        this.stopCamera();
+    const video = document.getElementById("cameraStream");
 
-        if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith("/")) {
-          targetUrl = "https://" + targetUrl;
-        }
+    if (!video) {
+      requestAnimationFrame(this.scanQRCode.bind(this));
+      return;
+    }
 
-        const qrBanner = document.getElementById("qr-banner");
-        const qrBannerText = document.getElementById("qr-banner-text");
+    if (!video.videoWidth || !video.videoHeight) {
+      requestAnimationFrame(this.scanQRCode.bind(this));
+      return;
+    }
 
-        if (qrBanner && qrBannerText) {
-          qrBannerText.textContent = `Öffnen: ${targetUrl}`;
-          qrBanner.classList.add("aktiv");
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      if (!this.qrCanvas) {
+        this.qrCanvas = document.createElement("canvas");
+      }
 
-          qrBanner.onclick = () => {
+      const canvas = this.qrCanvas;
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      if (typeof jsQR !== "undefined") {
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+
+        if (code && code.data) {
+          this.qrScanActive = false;
+
+          let targetUrl = code.data.trim();
+
+          console.log("QR erkannt:", targetUrl);
+          this.logEvent(`QR-Code erkannt: ${targetUrl}`);
+
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+
+          this.stopCamera();
+
+          if (!/^https?:\/\//i.test(targetUrl) && !targetUrl.startsWith("/")) {
+            targetUrl = "https://" + targetUrl;
+          }
+
+          const qrBanner = document.getElementById("qr-banner");
+          const qrBannerText = document.getElementById("qr-banner-text");
+
+          if (qrBanner && qrBannerText) {
+            qrBannerText.textContent = `Öffnen: ${targetUrl}`;
+            qrBanner.classList.add("aktiv");
+
+            qrBanner.onclick = () => {
+              window.location.href = targetUrl;
+            };
+          } else {
             window.location.href = targetUrl;
-          };
-        } else {
-          window.location.href = targetUrl;
-        }
+          }
 
-        return;
+          return;
+        }
       }
     }
-  }
 
-  requestAnimationFrame(this.scanQRCode.bind(this));
-},
+    requestAnimationFrame(this.scanQRCode.bind(this));
+  },
 
-stopCamera() {
-  this.qrScanActive = false;
+  stopCamera() {
+    this.qrScanActive = false;
 
-  const video = document.getElementById("cameraStream");
-  const overlay = document.getElementById("cameraOverlay");
-  const btn = document.getElementById("btnCamera");
+    const video = document.getElementById("cameraStream");
+    const overlay = document.getElementById("cameraOverlay");
+    const btn = document.getElementById("btnCamera");
 
-  if (video && video.srcObject) {
-    video.srcObject.getTracks().forEach((track) => track.stop());
-    video.srcObject = null;
-  }
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach((track) => track.stop());
+      video.srcObject = null;
+    }
 
-  if (overlay) {
-    overlay.style.display = "none";
-  }
+    if (overlay) {
+      overlay.style.display = "none";
+    }
 
-  if (btn) {
-    btn.classList.remove("success");
-  }
-},
+    if (btn) {
+      btn.classList.remove("success");
+    }
+  },
 
   // 📶 BLUETOOTH
   async checkBluetooth() {
