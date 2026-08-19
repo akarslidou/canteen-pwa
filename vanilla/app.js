@@ -841,18 +841,30 @@ async function fetchAvailableDaysFromAPI() {
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
-  try {
-    isLoading = true;
-    isClosed = false;
-    isOfflineError = false;
-    hasNoData = false;
-    renderStatus();
 
+  // State zurücksetzen
+  meals = [];
+  isLoading = true;
+  isClosed = false;
+  isOfflineError = false;
+  hasNoData = false;
+
+  render();
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  if (!navigator.onLine) {
+    isLoading = false;
+    isOfflineError = true;
+    render();
+    return;
+  }
+
+  try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
 
     if (!res.ok) {
-      meals = [];
       const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
@@ -872,7 +884,7 @@ async function loadMealsForDate(date) {
         hasNoData = true;
       }
     }
-  } catch {
+  } catch (err) {
     meals = [];
     isOfflineError = true;
   } finally {
@@ -1098,20 +1110,26 @@ function prefetchUpcomingDays() {
     return;
   }
 
-  // Heute und das Ende der aktuellen Woche ermitteln (z.B. Sonntag)
   const today = new Date();
-  const endOfWeek = new Date(today);
-  endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Nächster Sonntag
+  today.setHours(0, 0, 0, 0);
 
+  const dayOfWeek = today.getDay();
+  const distanceToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+
+  const endOfWeek = new Date(today);
+  endOfWeek.setDate(today.getDate() + distanceToSunday);
+  endOfWeek.setHours(23, 59, 59, 999); 
   const daysToPrefetch = availableDays.filter((day) => {
-    const dayDate = new Date(day.date);
-    // Nur Tage prefetchen, die ungleich dem aktuellen Tag sind UND in diese Woche fallen
-    return day.date !== selectedDate && dayDate <= endOfWeek;
+    // String "YYYY-MM-DD" ohne UTC-Shift lokal parsen
+    const [year, month, dayNum] = day.date.split("-").map(Number);
+    const dayDate = new Date(year, month - 1, dayNum);
+
+    return day.date !== selectedDate && dayDate >= today && dayDate <= endOfWeek;
   });
 
   daysToPrefetch.forEach((day) => {
     const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-    fetch(url).catch(() => {}); // Im Hintergrund im HTTP-Cache ablegen
+    fetch(url).catch(() => {});
   });
 }
 
