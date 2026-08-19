@@ -196,8 +196,14 @@ const HardwareController = {
             qrBanner.classList.add("aktiv");
 
             qrBanner.onclick = () => {
+              this.hideQRBanner();
               window.location.href = targetUrl;
             };
+
+            if (this.qrBannerTimeout) clearTimeout(this.qrBannerTimeout);
+            this.qrBannerTimeout = setTimeout(() => {
+              this.hideQRBanner();
+            }, 5000);
           } else {
             window.location.href = targetUrl;
           }
@@ -228,6 +234,19 @@ const HardwareController = {
 
     if (btn) {
       btn.classList.remove("success");
+    }
+  },
+
+  qrBannerTimeout: null,
+
+  hideQRBanner() {
+    const qrBanner = document.getElementById("qr-banner");
+    if (qrBanner) {
+      qrBanner.classList.remove("aktiv");
+    }
+    if (this.qrBannerTimeout) {
+      clearTimeout(this.qrBannerTimeout);
+      this.qrBannerTimeout = null;
     }
   },
 
