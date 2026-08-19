@@ -774,6 +774,7 @@ function updateCanteenDropdown(uniKey) {
 
 async function resetMealsAndReload() {
   meals = [];
+  mealsCache.clear();
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
@@ -804,6 +805,7 @@ function getTwoWeeksDays() {
   }
   return days;
 }
+const mealsCache = new Map();
 
 async function fetchAvailableDaysFromAPI() {
   if (!canteenId) return;
@@ -811,6 +813,12 @@ async function fetchAvailableDaysFromAPI() {
   availableDays = getTwoWeeksDays();
   if (!selectedDate || !availableDays.some((d) => d.date === selectedDate)) {
     selectedDate = availableDays[0].date;
+  }
+
+  if (!navigator.onLine) {
+    isOfflineError = true;
+    renderStatus();
+    return;
   }
 
   try {
@@ -832,10 +840,11 @@ async function fetchAvailableDaysFromAPI() {
       }
     });
   } catch (err) {
-    console.warn(
-      "[Offline] Using generated fallback weekdays for the carousel.",
-    );
+    console.warn("[Offline] Generierte Wochentage werden genutzt.");
     isOfflineError = true;
+  } finally {
+    isLoading = false;
+    renderStatus();
   }
 }
 
@@ -843,9 +852,15 @@ function prefetchUpcomingDays() {
   if (!navigator.onLine || !availableDays || !canteenId) return;
 
   availableDays.forEach((day) => {
-    if (day.date !== selectedDate && !day.closed) {
+    const cacheKey = `${canteenId}_${day.date}`;
+    if (day.date !== selectedDate && !day.closed && !mealsCache.has(cacheKey)) {
       const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-      fetch(url).catch(() => {}); 
+      fetch(url)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) mealsCache.set(cacheKey, data);
+        })
+        .catch(() => {});
     }
   });
 }
@@ -853,17 +868,35 @@ function prefetchUpcomingDays() {
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
 
-  const wasOffline = !navigator.onLine;
+  const cacheKey = `${canteenId}_${date}`;
 
-  if (!wasOffline) {
-    meals = [];
-    isLoading = true;
-    isClosed = false;
-    isOfflineError = false;
-    hasNoData = false;
+  // 1. Sofortige Auswertung im Offline-Fall
+  if (!navigator.onLine) {
+    isLoading = false;
+    isOfflineError = true;
+    meals = mealsCache.get(cacheKey) || [];
     render();
+    return;
   }
 
+  // 2. Cache-Hit: Sofort rendern ohne Lade-Animation oder Fetch
+  if (mealsCache.has(cacheKey)) {
+    meals = mealsCache.get(cacheKey);
+    isLoading = false;
+    isClosed = false;
+    isOfflineError = false;
+    hasNoData = meals.length === 0;
+    render();
+    return;
+  }
+
+  // 3. Fallback: Bei Netzwerk-Anfrage Ladezustand anzeigen
+  meals = [];
+  isLoading = true;
+  isClosed = false;
+  isOfflineError = false;
+  hasNoData = false;
+  render();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -884,6 +917,8 @@ async function loadMealsForDate(date) {
     }
 
     meals = await res.json();
+    mealsCache.set(cacheKey, meals); 
+
     if (meals.length === 0) {
       hasNoData = true;
     }
