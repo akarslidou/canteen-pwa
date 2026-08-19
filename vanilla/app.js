@@ -1094,14 +1094,24 @@ function toggleAllergene(id, btn) {
 }
 
 function prefetchUpcomingDays() {
-  if (!availableDays || availableDays.length <= 1 || !canteenId) return;
-  const daysToPrefetch = availableDays.filter(
-    (day) => day.date !== selectedDate,
-  );
+  if (!navigator.onLine || isOfflineError || !availableDays || availableDays.length <= 1 || !canteenId) {
+    return;
+  }
+
+  // Heute und das Ende der aktuellen Woche ermitteln (z.B. Sonntag)
+  const today = new Date();
+  const endOfWeek = new Date(today);
+  endOfWeek.setDate(today.getDate() + (7 - today.getDay())); // Nächster Sonntag
+
+  const daysToPrefetch = availableDays.filter((day) => {
+    const dayDate = new Date(day.date);
+    // Nur Tage prefetchen, die ungleich dem aktuellen Tag sind UND in diese Woche fallen
+    return day.date !== selectedDate && dayDate <= endOfWeek;
+  });
 
   daysToPrefetch.forEach((day) => {
     const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-    fetch(url).catch(() => {});
+    fetch(url).catch(() => {}); // Im Hintergrund im HTTP-Cache ablegen
   });
 }
 
