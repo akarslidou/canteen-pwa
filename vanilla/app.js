@@ -813,11 +813,6 @@ async function fetchAvailableDaysFromAPI() {
     selectedDate = availableDays[0].date;
   }
 
-  if (!navigator.onLine) {
-    isOfflineError = true;
-    return;
-  }
-
   try {
     isLoading = true;
     isOfflineError = false;
@@ -847,14 +842,6 @@ async function fetchAvailableDaysFromAPI() {
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
-
-  if (!navigator.onLine) {
-    meals = [];
-    isOfflineError = true;
-    isLoading = false;
-    render();
-    return;
-  }
 
   try {
     isLoading = true;
