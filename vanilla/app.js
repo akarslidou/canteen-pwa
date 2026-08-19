@@ -848,24 +848,22 @@ async function loadMealsForDate(date) {
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
-
+  
   render();
 
   await new Promise((resolve) => setTimeout(resolve, 0));
-
-  if (!navigator.onLine) {
-    isLoading = false;
-    isOfflineError = true;
-    render();
-    return;
-  }
 
   try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
 
+    if (res.status === 503) {
+      isOfflineError = true;
+      return;
+    }
+
     if (!res.ok) {
-      const dayMeta = availableDays.find((d) => d.date === date);
+      const dayMeta = availableDays?.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
@@ -877,7 +875,7 @@ async function loadMealsForDate(date) {
     meals = await res.json();
 
     if (meals.length === 0) {
-      const dayMeta = availableDays.find((d) => d.date === date);
+      const dayMeta = availableDays?.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
@@ -885,7 +883,6 @@ async function loadMealsForDate(date) {
       }
     }
   } catch (err) {
-    meals = [];
     isOfflineError = true;
   } finally {
     isLoading = false;
