@@ -840,34 +840,49 @@ async function fetchAvailableDaysFromAPI() {
   }
 }
 
+let mealFetchController = null;
+
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
 
-  try {
-    isLoading = true;
-    isClosed = false;
-    isOfflineError = false;
-    hasNoData = false;
-    renderStatus();
+  if (mealFetchController) {
+    mealFetchController.abort();
+  }
+  mealFetchController = new AbortController();
+  const currentSignal = mealFetchController.signal;
 
+  if (!navigator.onLine) {
+    meals = [];
+    isLoading = false;
+    isOfflineError = true;
+    render();
+    return;
+  }
+
+  meals = [];
+  isLoading = true;
+  isClosed = false;
+  isOfflineError = false;
+  hasNoData = false;
+  
+  renderSkeleton();
+
+  try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     
     const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
 
+    if (currentSignal.aborted) return;
+
     if (!res.ok) {
       meals = [];
-      const dayMeta = availableDays.find((d) => d.date === date);
-      if (dayMeta && dayMeta.closed) {
-        isClosed = true;
-      } else {
-        hasNoData = true;
-      }
+      isOfflineError = true;
       return;
     }
 
     meals = await res.json();
 
-    if (meals.length === 0) {
+    if (!meals || meals.length === 0) {
       const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
@@ -875,12 +890,27 @@ async function loadMealsForDate(date) {
         hasNoData = true;
       }
     }
-  } catch {
+  } catch (err) {
+    if (currentSignal.aborted) return;
     meals = [];
     isOfflineError = true;
   } finally {
-    isLoading = false;
-    render();
+    if (!currentSignal.aborted) {
+      isLoading = false;
+      render();
+    }
+  }
+}
+
+function renderSkeleton() {
+  renderSelectedDayTitle();
+  if (nodes.statusDiv) nodes.statusDiv.innerHTML = "";
+  if (nodes.mealsList) {
+    nodes.mealsList.innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
   }
 }
 
