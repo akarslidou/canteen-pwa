@@ -1,4 +1,3 @@
-@ -1,1155 +1,1165 @@
 // ============================================================================
 // 1. HARDWARE CONTROLLER (Kamera, GPS, Bluetooth, Web NFC, Debug-Panel)
 // ============================================================================
@@ -842,6 +841,8 @@ async function fetchAvailableDaysFromAPI() {
 
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
+  const cacheKey = `mensa_meals_${canteenId}_${date}`;
+
   try {
     isLoading = true;
     isClosed = false;
@@ -855,27 +856,25 @@ async function loadMealsForDate(date) {
     if (!res.ok) {
       meals = [];
       const dayMeta = availableDays.find((d) => d.date === date);
-      if (dayMeta && dayMeta.closed) {
-        isClosed = true;
-      } else {
         hasNoData = true;
-      }
+      if (dayMeta && dayMeta.closed) isClosed = true;
+      else hasNoData = true;
       return;
     }
 
     meals = await res.json();
+    
+    localStorage.setItem(cacheKey, JSON.stringify(meals));
 
-    if (meals.length === 0) {
-      const dayMeta = availableDays.find((d) => d.date === date);
-      if (dayMeta && dayMeta.closed) {
-        isClosed = true;
-      } else {
-        hasNoData = true;
-      }
+  } catch (err) {
+    const cachedData = localStorage.getItem(cacheKey);
+    if (cachedData) {
+      meals = JSON.parse(cachedData);
+      isOfflineError = true;
+    } else {
+      meals = [];
+      isOfflineError = true;
     }
-  } catch {
-    meals = [];
-    isOfflineError = true;
   } finally {
     isLoading = false;
     render();
@@ -1138,7 +1137,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
   setupInitialState();
 
-  // Schließt Filter-Dropdowns bei Klick außerhalb
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".filter-dropdown-container")) {
       document
