@@ -826,7 +826,7 @@ async function fetchAvailableDaysFromAPI() {
 
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
     
-    const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
     if (!res.ok) throw new Error();
 
     const daysData = await res.json();
@@ -865,7 +865,7 @@ async function loadMealsForDate(date) {
 
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     
-    const res = await fetch(url, { signal: AbortSignal.timeout(1000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
 
     if (!res.ok) {
       meals = [];
