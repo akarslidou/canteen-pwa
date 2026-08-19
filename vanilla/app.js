@@ -853,13 +853,17 @@ function prefetchUpcomingDays() {
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
 
-  // Reset
-  meals = [];
-  isLoading = true;
-  isClosed = false;
-  isOfflineError = false;
-  hasNoData = false;
-  render();
+  const wasOffline = !navigator.onLine;
+
+  if (!wasOffline) {
+    meals = [];
+    isLoading = true;
+    isClosed = false;
+    isOfflineError = false;
+    hasNoData = false;
+    render();
+  }
+
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 2000);
