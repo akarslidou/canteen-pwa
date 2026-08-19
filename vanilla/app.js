@@ -839,28 +839,35 @@ async function fetchAvailableDaysFromAPI() {
   }
 }
 
+function prefetchUpcomingDays() {
+  if (!navigator.onLine || !availableDays || !canteenId) return;
+
+  availableDays.forEach((day) => {
+    if (day.date !== selectedDate && !day.closed) {
+      const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
+      fetch(url).catch(() => {}); 
+    }
+  });
+}
+
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
 
-  // State zurücksetzen
+  // Reset
   meals = [];
   isLoading = true;
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
-  
   render();
 
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
-    const res = await fetch(url);
-
-    if (res.status === 503) {
-      isOfflineError = true;
-      return;
-    }
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const dayMeta = availableDays?.find((d) => d.date === date);
@@ -873,18 +880,13 @@ async function loadMealsForDate(date) {
     }
 
     meals = await res.json();
-
     if (meals.length === 0) {
-      const dayMeta = availableDays?.find((d) => d.date === date);
-      if (dayMeta && dayMeta.closed) {
-        isClosed = true;
-      } else {
-        hasNoData = true;
-      }
+      hasNoData = true;
     }
   } catch (err) {
     isOfflineError = true;
   } finally {
+    clearTimeout(timeoutId);
     isLoading = false;
     render();
   }
@@ -1100,34 +1102,6 @@ function toggleAllergene(id, btn) {
   if (!liste) return;
   liste.classList.toggle("offen");
   if (btn) btn.classList.toggle("offen");
-}
-
-function prefetchUpcomingDays() {
-  if (!navigator.onLine || isOfflineError || !availableDays || availableDays.length <= 1 || !canteenId) {
-    return;
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dayOfWeek = today.getDay();
-  const distanceToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-
-  const endOfWeek = new Date(today);
-  endOfWeek.setDate(today.getDate() + distanceToSunday);
-  endOfWeek.setHours(23, 59, 59, 999); 
-  const daysToPrefetch = availableDays.filter((day) => {
-    // String "YYYY-MM-DD" ohne UTC-Shift lokal parsen
-    const [year, month, dayNum] = day.date.split("-").map(Number);
-    const dayDate = new Date(year, month - 1, dayNum);
-
-    return day.date !== selectedDate && dayDate >= today && dayDate <= endOfWeek;
-  });
-
-  daysToPrefetch.forEach((day) => {
-    const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-    fetch(url).catch(() => {});
-  });
 }
 
 function render() {

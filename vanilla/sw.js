@@ -53,13 +53,12 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
 
-  // Strategie 1: Network-First (Für OpenMensa API)
-  // Tipp: Prlocation/Hostname flexibler prüfen (falls du lokal oder über Proxies testest)
-  if (requestUrl.hostname.includes('openmensa.org') || requestUrl.pathname.includes('/api/')) {
+  // Strategy 1: Network-First (For OpenMensa API)
+  if (requestUrl.hostname.includes('openmensa.org')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // Nur erfolgreiche Antworten (HTTP 200-299) cachen
+          // If online and successful, save response in API cache
           if (response.ok) {
             const responseClone = response.clone();
             caches.open(API_CACHE_NAME).then(cache => {
@@ -68,21 +67,13 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(async () => {
-          // Offline-Fallback: Versuche Daten aus dem Cache zu holen
-          const cachedResponse = await caches.match(event.request);
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Falls für diesen Tag noch NICHTS im Cache liegt: Sauberen 503-HTTP-Error zurückgeben
-          return new Response(
-            JSON.stringify({ error: "Offline und keine Daten im Cache vorhanden" }), 
-            { status: 503, headers: { "Content-Type": "application/json" } }
-          );
+        .catch(() => {
+          // Offline fallback: load from API cache
+          return caches.match(event.request);
         })
     );
   } 
-  // Strategie 2: Cache-First (Für lokale statische Dateien)
+  // Strategy 2: Cache-First (For local static files)
   else {
     event.respondWith(
       caches.match(event.request).then(cachedResponse => {
