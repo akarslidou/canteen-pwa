@@ -1040,6 +1040,16 @@ document.addEventListener("DOMContentLoaded", () => {
       .catch((err) => console.warn("Service Worker Registrierung fehlgeschlagen:", err));
   }
 
+  window.addEventListener("offline", () => {
+    isOfflineError = true;
+    renderStatus();
+  });
+
+  window.addEventListener("online", () => {
+    isOfflineError = false;
+    loadMealsForDate(selectedDate); 
+  });
+
   nodes = {
     citySelect: document.getElementById("citySelect"),
     dayCarousel: document.getElementById("dayCarousel"),
