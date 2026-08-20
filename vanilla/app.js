@@ -580,15 +580,10 @@ function initMap(lat, lng, name) {
   const mapElement = document.getElementById("map");
   if (!mapElement || typeof L === "undefined") return;
 
-  if (map) {
-    map.remove();
-  }
-
+  if (map) map.remove();
   map = L.map("map").setView([lat, lng], 16);
 
-  setTimeout(() => {
-    if (map) map.invalidateSize();
-  }, 300);
+  setTimeout(() => map && map.invalidateSize(), 300);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap",
@@ -601,9 +596,7 @@ function toggleDropdown(id) {
   const target = document.getElementById(id);
   if (!target) return;
   const warOffen = target.classList.contains("offen");
-  document
-    .querySelectorAll(".filter-dropdown-container")
-    .forEach((el) => el.classList.remove("offen"));
+  document.querySelectorAll(".filter-dropdown-container").forEach((el) => el.classList.remove("offen"));
   if (!warOffen) target.classList.add("offen");
 }
 
@@ -613,44 +606,29 @@ function changePriceType(type) {
 }
 
 function applyFilters() {
-  activeFilterKeywords = [];
-  document.querySelectorAll(".filter-checkbox:checked").forEach((cb) => {
-    activeFilterKeywords.push(cb.value.toLowerCase());
-  });
+  activeFilterKeywords = Array.from(document.querySelectorAll(".filter-checkbox:checked"))
+    .map((cb) => cb.value.toLowerCase());
   renderMeals();
-  const dropdown = document.getElementById("categoryDropdown");
-  if (dropdown) dropdown.classList.remove("offen");
+  document.getElementById("categoryDropdown")?.classList.remove("offen");
 }
 
 function resetFilters() {
-  document
-    .querySelectorAll(".filter-checkbox")
-    .forEach((cb) => (cb.checked = false));
+  document.querySelectorAll(".filter-checkbox").forEach((cb) => (cb.checked = false));
   activeFilterKeywords = [];
   renderMeals();
-  const dropdown = document.getElementById("categoryDropdown");
-  if (dropdown) dropdown.classList.remove("offen");
+  document.getElementById("categoryDropdown")?.classList.remove("offen");
 }
 
-// ABSTURZSICHERE EVENT-LISTENER
 function initEventListeners() {
-  document
-    .getElementById("menuOpenTrigger")
-    ?.addEventListener("click", toggleMenu);
-  document
-    .getElementById("menuCloseTrigger")
-    ?.addEventListener("click", toggleMenu);
+  document.getElementById("menuOpenTrigger")?.addEventListener("click", toggleMenu);
+  document.getElementById("menuCloseTrigger")?.addEventListener("click", toggleMenu);
   nodes.menuOverlay?.addEventListener("click", toggleMenu);
 
   nodes.headerCanteenTrigger?.addEventListener("click", toggleInlineDropdown);
   nodes.dropdownSchliesser?.addEventListener("click", toggleInlineDropdown);
 
-  document
-    .getElementById("carouselPrev")
-    ?.addEventListener("click", () => scrollCarousel(-1));
-  document
-    .getElementById("carouselNext")
-    ?.addEventListener("click", () => scrollCarousel(1));
+  document.getElementById("carouselPrev")?.addEventListener("click", () => scrollCarousel(-1));
+  document.getElementById("carouselNext")?.addEventListener("click", () => scrollCarousel(1));
 
   nodes.citySelect?.addEventListener("change", (e) => {
     currentUniKey = e.target.value;
@@ -675,6 +653,7 @@ function initEventListeners() {
 
 function setupInitialState() {
   if (nodes.citySelect) nodes.citySelect.value = "tuebingen";
+  currentUniKey = "tuebingen";
   canteenId = universityCanteens["tuebingen"][0].id;
 
   updatePageHeader();
@@ -699,63 +678,41 @@ function scrollCarousel(direction) {
   const firstButton = container.querySelector(".tag-button");
   if (!firstButton) return;
 
-  const width = firstButton.offsetWidth;
-  const gap = parseFloat(window.getComputedStyle(container).gap) || 12;
-  const scrollAmount = width + gap;
-
-  const currentScroll = container.scrollLeft;
-  const targetScroll =
-    Math.round((currentScroll + scrollAmount * direction) / scrollAmount) *
-    scrollAmount;
-
+  const scrollAmount = firstButton.offsetWidth + (parseFloat(window.getComputedStyle(container).gap) || 12);
   container.scrollTo({
-    left: targetScroll,
+    left: Math.round((container.scrollLeft + scrollAmount * direction) / scrollAmount) * scrollAmount,
     behavior: "smooth",
   });
 }
 
 function updatePageHeader() {
-  if (
-    nodes.citySelect &&
-    nodes.citySelect.options &&
-    nodes.citySelect.options[nodes.citySelect.selectedIndex]
-  ) {
+  if (nodes.citySelect?.options && nodes.citySelect.options[nodes.citySelect.selectedIndex]) {
     if (nodes.headerUniversityTitle) {
-      nodes.headerUniversityTitle.textContent =
-        nodes.citySelect.options[nodes.citySelect.selectedIndex].text;
+      nodes.headerUniversityTitle.textContent = nodes.citySelect.options[nodes.citySelect.selectedIndex].text;
     }
   }
 
-  const currentCanteen = universityCanteens[currentUniKey]?.find(
-    (c) => c.id == canteenId,
-  );
+  const currentCanteen = universityCanteens[currentUniKey]?.find((c) => c.id == canteenId);
   if (currentCanteen) {
-    if (nodes.headerCanteenTitle)
-      nodes.headerCanteenTitle.textContent = currentCanteen.name;
+    if (nodes.headerCanteenTitle) nodes.headerCanteenTitle.textContent = currentCanteen.name;
     if (nodes.infoHours) nodes.infoHours.textContent = currentCanteen.hours;
-    if (nodes.infoCanteenName)
-      nodes.infoCanteenName.textContent = currentCanteen.name.toUpperCase();
-    if (nodes.infoAddress)
-      nodes.infoAddress.textContent = currentCanteen.address;
+    if (nodes.infoCanteenName) nodes.infoCanteenName.textContent = currentCanteen.name.toUpperCase();
+    if (nodes.infoAddress) nodes.infoAddress.textContent = currentCanteen.address;
 
     if (nodes.infoMapButton) {
-      nodes.infoMapButton.onclick = () => {
-        window.open(currentCanteen.url, "_blank");
-      };
+      nodes.infoMapButton.onclick = () => window.open(currentCanteen.url, "_blank");
     }
 
     if (currentCanteen.lat && currentCanteen.lng) {
-      setTimeout(() => {
-        initMap(currentCanteen.lat, currentCanteen.lng, currentCanteen.name);
-      }, 100);
+      setTimeout(() => initMap(currentCanteen.lat, currentCanteen.lng, currentCanteen.name), 100);
     }
   }
 }
 
 function updateCanteenDropdown(uniKey) {
   if (!nodes.inlineDropdown) return;
-  const fragment = document.createDocumentFragment();
   nodes.inlineDropdown.innerHTML = "";
+  const fragment = document.createDocumentFragment();
 
   if (universityCanteens[uniKey]) {
     universityCanteens[uniKey]
@@ -768,7 +725,6 @@ function updateCanteenDropdown(uniKey) {
         fragment.appendChild(item);
       });
   }
-
   nodes.inlineDropdown.appendChild(fragment);
 }
 
@@ -794,10 +750,7 @@ function getTwoWeeksDays() {
       const yyyy = current.getFullYear();
       const mm = String(current.getMonth() + 1).padStart(2, "0");
       const dd = String(current.getDate()).padStart(2, "0");
-      days.push({
-        date: `${yyyy}-${mm}-${dd}`,
-        closed: false,
-      });
+      days.push({ date: `${yyyy}-${mm}-${dd}`, closed: false });
       count++;
     }
     current.setDate(current.getDate() + 1);
@@ -815,72 +768,44 @@ async function fetchAvailableDaysFromAPI() {
 
   try {
     isLoading = true;
-    isOfflineError = false;
-    hasNoData = false;
     renderStatus();
 
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
-    
-    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(url);
     if (!res.ok) throw new Error();
 
     const daysData = await res.json();
+    if (!navigator.onLine) isOfflineError = true;
 
     availableDays.forEach((day) => {
       const apiDay = daysData.find((d) => d.date === day.date);
-      if (apiDay) {
-        day.closed = apiDay.closed === true;
-      }
+      if (apiDay) day.closed = apiDay.closed === true;
     });
   } catch (err) {
-    console.warn(
-      "[Offline] Using generated fallback weekdays for the carousel.",
-    );
     isOfflineError = true;
   }
 }
 
-let mealFetchController = null;
-
 async function loadMealsForDate(date) {
   if (!date || !canteenId) return;
 
-  if (mealFetchController) {
-    mealFetchController.abort();
-  }
-  mealFetchController = new AbortController();
-  const currentSignal = mealFetchController.signal;
-
-  if (!navigator.onLine) {
-    meals = [];
-    isLoading = false;
-    isOfflineError = true;
-    render();
-    return;
-  }
-
-  meals = [];
   isLoading = true;
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
-  
-  renderSkeleton();
+  renderStatus();
 
   try {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
-    
-    const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(url);
 
-    if (currentSignal.aborted) return;
-
-    if (!res.ok) {
-      meals = [];
-      isOfflineError = true;
-      return;
-    }
+    if (!res.ok) throw new Error();
 
     meals = await res.json();
+
+    if (!navigator.onLine) {
+      isOfflineError = true;
+    }
 
     if (!meals || meals.length === 0) {
       const dayMeta = availableDays.find((d) => d.date === date);
@@ -891,57 +816,37 @@ async function loadMealsForDate(date) {
       }
     }
   } catch (err) {
-    if (currentSignal.aborted) return;
     meals = [];
     isOfflineError = true;
   } finally {
-    if (!currentSignal.aborted) {
-      isLoading = false;
-      render();
-    }
-  }
-}
-
-function renderSkeleton() {
-  renderSelectedDayTitle();
-  if (nodes.statusDiv) nodes.statusDiv.innerHTML = "";
-  if (nodes.mealsList) {
-    nodes.mealsList.innerHTML = `
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-      <div class="skeleton-card"></div>
-    `;
+    isLoading = false;
+    render();
   }
 }
 
 function renderDays() {
   if (!nodes.dayCarousel) return;
-  const fragment = document.createDocumentFragment();
   nodes.dayCarousel.innerHTML = "";
   if (availableDays.length === 0) return;
 
+  const fragment = document.createDocumentFragment();
+  const wochentage = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
   availableDays.forEach((day) => {
     const d = new Date(day.date);
-    const wochentage = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-    const dayName = wochentage[d.getDay()];
-    const dateStr = `${d.getDate()}.${d.getMonth() + 1}.`;
-
     const btn = document.createElement("button");
     btn.className = "tag-button";
     if (day.date === selectedDate) btn.classList.add("tag-aktiv");
 
     btn.innerHTML = `
-      <span class="day-name">${dayName}</span>
-      <span class="day-date">${dateStr}</span>
+      <span class="day-name">${wochentage[d.getDay()]}</span>
+      <span class="day-date">${d.getDate()}.${d.getMonth() + 1}.</span>
     `;
 
     btn.addEventListener("click", async () => {
       if (selectedDate === day.date) return;
       selectedDate = day.date;
-
-      nodes.dayCarousel
-        .querySelectorAll(".tag-button")
-        .forEach((b) => b.classList.remove("tag-aktiv"));
+      nodes.dayCarousel.querySelectorAll(".tag-button").forEach((b) => b.classList.remove("tag-aktiv"));
       btn.classList.add("tag-aktiv");
       await loadMealsForDate(day.date);
     });
@@ -960,20 +865,8 @@ function renderSelectedDayTitle() {
   const parts = selectedDate.split("-");
   if (parts.length === 3) {
     const d = new Date(parts[0], parts[1] - 1, parts[2]);
-    const wochentageLang = [
-      "Sonntag",
-      "Montag",
-      "Dienstag",
-      "Mittwoch",
-      "Donnerstag",
-      "Freitag",
-      "Samstag",
-    ];
-
-    const dayName = wochentageLang[d.getDay()];
-    const dateStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
-
-    nodes.selectedDayTitle.textContent = `${dayName}  ${dateStr}`;
+    const wochentageLang = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+    nodes.selectedDayTitle.textContent = `${wochentageLang[d.getDay()]} ${parts[2]}.${parts[1]}.${parts[0]}`;
   } else {
     nodes.selectedDayTitle.textContent = selectedDate;
   }
@@ -982,13 +875,12 @@ function renderSelectedDayTitle() {
 function renderMeals() {
   if (!nodes.mealsList) return;
   nodes.mealsList.innerHTML = "";
+
   if (isClosed || (isOfflineError && meals.length === 0) || hasNoData) return;
 
   const filteredMeals = meals.filter((meal) => {
     if (activeFilterKeywords.length === 0) return true;
-    const mealText = [meal.name, meal.category, ...(meal.notes || [])]
-      .join(" ")
-      .toLowerCase();
+    const mealText = [meal.name, meal.category, ...(meal.notes || [])].join(" ").toLowerCase();
     return activeFilterKeywords.some((keyword) => mealText.includes(keyword));
   });
 
@@ -1004,33 +896,22 @@ function renderMeals() {
     const div = document.createElement("div");
     div.className = "gericht-karte";
 
-    const priceVal =
-      activePriceType === "students"
-        ? meal.prices.students
-        : meal.prices.employees || meal.prices.others || meal.prices.pupils;
+    const priceVal = activePriceType === "students"
+      ? meal.prices?.students
+      : meal.prices?.employees || meal.prices?.others || meal.prices?.pupils;
 
-    const formattedPrice = priceVal
-      ? `${priceVal.toFixed(2).replace(".", ",")} €`
-      : "N/A";
-
+    const formattedPrice = priceVal ? `${priceVal.toFixed(2).replace(".", ",")} €` : "N/A";
     const cleanNotes = (meal.notes || []).filter((note) => {
       const n = note.toLowerCase();
-      return (
-        !n.includes("[vegan]") &&
-        !n.includes("[v]") &&
-        !n.includes("vegetarisch")
-      );
+      return !n.includes("[vegan]") && !n.includes("[v]") && !n.includes("vegetarisch");
     });
 
-    const hasNotes = cleanNotes.length > 0;
     const uniqueId = `allergens-${index}`;
     let allergenHtml = "";
     let toggleBtn = "";
 
-    if (hasNotes) {
-      const notesContent = cleanNotes.some((n) =>
-        n.toLowerCase().includes("allergene"),
-      )
+    if (cleanNotes.length > 0) {
+      const notesContent = cleanNotes.some((n) => n.toLowerCase().includes("allergene"))
         ? cleanNotes.map((n) => `<div class="notes-line">${n}</div>`).join("")
         : `<div class="notes-line"><b>Infos/Allergene:</b> ${cleanNotes.join(", ")}</div>`;
 
@@ -1042,7 +923,7 @@ function renderMeals() {
       <div class="gericht-kategorie" style="margin-bottom: 4px;">${meal.category}</div>
       <div class="gericht-header">
         <div class="gericht-name">
-          ${getStuweIconHtml(meal)} ${meal.name}
+          ${typeof getStuweIconHtml === "function" ? getStuweIconHtml(meal) : ""} ${meal.name}
         </div>
         <div class="preis-container">
             <div class="gericht-preis">${formattedPrice}</div>
@@ -1072,14 +953,9 @@ function renderStatus() {
     if (meals.length === 0) {
       nodes.statusDiv.innerHTML = `
         <div class="offline-warning" style="text-align:center; padding: 24px; font-family:Futura,sans-serif; background: #fffaf0; border: 1px solid #feebc8; border-radius: 8px; margin: 20px auto; max-width: 90%;">
-          <p style="color: #dd6b20; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">
-            ⚠️ Keine Internetverbindung
-          </p>
-          <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">
-            Für dieses Datum wurden offline noch keine Daten gespeichert. Bitte gehe online, um den Speiseplan zu laden.
-          </p>
-        </div>
-      `;
+          <p style="color: #dd6b20; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">⚠️ Keine Internetverbindung</p>
+          <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">Für dieses Datum wurden offline noch keine Daten gespeichert. Bitte gehe online, um den Speiseplan zu laden.</p>
+        </div>`;
       nodes.mealsList.innerHTML = "";
     } else {
       nodes.statusDiv.innerHTML = `
@@ -1087,32 +963,21 @@ function renderStatus() {
           <span style="background: #edf2f7; color: #4a5568; font-size: 0.8rem; padding: 4px 12px; border-radius: 12px; font-weight: 500; font-family: Futura, sans-serif;">
             ⚡ Offline-Modus (gespeicherte Daten)
           </span>
-        </div>
-      `;
+        </div>`;
     }
   } else if (isClosed) {
     nodes.statusDiv.innerHTML = `
       <div style="text-align:center; padding: 24px; font-family:Futura,sans-serif;">
-        <p style="color: #c53030; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">
-          Geschlossen ❌
-        </p>
-        <p style="color: #718096; font-size: 0.9rem;">
-          Diese Mensa hat an dem ausgewählten Tag geschlossen.
-        </p>
-      </div>
-    `;
+        <p style="color: #c53030; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">Geschlossen ❌</p>
+        <p style="color: #718096; font-size: 0.9rem;">Diese Mensa hat an dem ausgewählten Tag geschlossen.</p>
+      </div>`;
     nodes.mealsList.innerHTML = "";
   } else if (hasNoData) {
     nodes.statusDiv.innerHTML = `
       <div style="text-align:center; padding: 24px; font-family:Futura,sans-serif; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px auto; max-width: 90%;">
-        <p style="color: #4a5568; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">
-          Kein Speiseplan verfügbar
-        </p>
-        <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">
-          Für diesen Tag wurden vom Studierendenwerk noch keine Gerichte veröffentlicht.
-        </p>
-      </div>
-    `;
+        <p style="color: #4a5568; font-weight: bold; margin-bottom: 8px; font-size: 1.1rem;">Kein Speiseplan verfügbar</p>
+        <p style="color: #718096; font-size: 0.9rem; line-height: 1.4;">Für diesen Tag wurden vom Studierendenwerk noch keine Gerichte veröffentlicht.</p>
+      </div>`;
     nodes.mealsList.innerHTML = "";
   } else {
     nodes.statusDiv.innerHTML = "";
@@ -1127,15 +992,13 @@ function toggleAllergene(id, btn) {
 }
 
 function prefetchUpcomingDays() {
-  if (!availableDays || availableDays.length <= 1 || !canteenId || !navigator.onLine) return;
-  const daysToPrefetch = availableDays.filter(
-    (day) => day.date !== selectedDate,
-  );
-
-  daysToPrefetch.forEach((day) => {
-    const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
-    fetch(url, { signal: AbortSignal.timeout(1000) }).catch(() => {});
-  });
+  if (!availableDays || availableDays.length <= 1 || !canteenId) return;
+  availableDays
+    .filter((day) => day.date !== selectedDate)
+    .forEach((day) => {
+      const url = new URL(`${canteenId}/days/${day.date}/meals`, API_BASE_URL);
+      fetch(url).catch(() => {});
+    });
 }
 
 function render() {
@@ -1145,9 +1008,16 @@ function render() {
 }
 
 // ============================================================================
-// 5. INITIALISIERUNG
+// INITIALISIERUNG
 // ============================================================================
 document.addEventListener("DOMContentLoaded", () => {
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register("./sw.js")
+      .catch((err) => console.warn("Service Worker Registrierung fehlgeschlagen:", err));
+  }
+
   nodes = {
     citySelect: document.getElementById("citySelect"),
     dayCarousel: document.getElementById("dayCarousel"),
@@ -1170,18 +1040,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initEventListeners();
   setupInitialState();
 
-  // Schließt Filter-Dropdowns bei Klick außerhalb
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".filter-dropdown-container")) {
-      document
-        .querySelectorAll(".filter-dropdown-container")
-        .forEach((el) => el.classList.remove("offen"));
+      document.querySelectorAll(".filter-dropdown-container").forEach((el) => el.classList.remove("offen"));
     }
   });
 
-  // HardwareController Log-Eintrag zum Start
-  const sys = HardwareController.getPlatformInfo();
-  HardwareController.logEvent(
-    `App erfolgreich gestartet auf ${sys.browser} / ${sys.os}`,
-  );
 });
