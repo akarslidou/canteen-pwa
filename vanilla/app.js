@@ -942,12 +942,15 @@ function renderStatus() {
   if (!nodes.statusDiv || !nodes.mealsList) return;
 
   if (isLoading) {
-    nodes.mealsList.classList.add("state-loading");
     nodes.statusDiv.innerHTML = "";
+    // Erzeugt 3 pulsierende Platzhalter-Karten als Feedback
+    nodes.mealsList.innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
     return;
   }
-
-  nodes.mealsList.classList.remove("state-loading");
 
   if (isOfflineError) {
     if (meals.length === 0) {
