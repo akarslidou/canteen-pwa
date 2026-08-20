@@ -772,17 +772,22 @@ async function fetchAvailableDaysFromAPI() {
 
     const url = new URL(`${canteenId}/days`, API_BASE_URL);
     const res = await fetch(url);
-    if (!res.ok) throw new Error();
+
+    if (!res.ok) {
+      console.warn(`[API] Canteen ${canteenId} returned status ${res.status}. Using fallback schedule.`);
+      return;
+    }
 
     const daysData = await res.json();
-    if (!navigator.onLine) isOfflineError = true;
 
     availableDays.forEach((day) => {
       const apiDay = daysData.find((d) => d.date === day.date);
       if (apiDay) day.closed = apiDay.closed === true;
     });
   } catch (err) {
-    isOfflineError = true;
+    if (!navigator.onLine) {
+      isOfflineError = true;
+    }
   }
 }
 
@@ -799,7 +804,17 @@ async function loadMealsForDate(date) {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
 
-    if (!res.ok) throw new Error();
+    // If HTTP status is not OK (e.g. 404 No Data for this date)
+    if (!res.ok) {
+      meals = [];
+      const dayMeta = availableDays.find((d) => d.date === date);
+      if (dayMeta && dayMeta.closed) {
+        isClosed = true;
+      } else {
+        hasNoData = true; // Show "Kein Speiseplan verfügbar" instead of offline warning
+      }
+      return;
+    }
 
     meals = await res.json();
 
@@ -817,7 +832,11 @@ async function loadMealsForDate(date) {
     }
   } catch (err) {
     meals = [];
-    isOfflineError = true;
+    if (!navigator.onLine) {
+      isOfflineError = true;
+    } else {
+      hasNoData = true; 
+    }
   } finally {
     isLoading = false;
     render();
