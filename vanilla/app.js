@@ -983,7 +983,7 @@ function renderStatus() {
       nodes.statusDiv.innerHTML = `
         <div style="text-align:center; margin-bottom: 12px;">
           <span style="background: #edf2f7; color: #4a5568; font-size: 0.8rem; padding: 4px 12px; border-radius: 12px; font-weight: 500; font-family: Futura, sans-serif;">
-            ⚡ Offline-Modus (gespeicherte Daten)
+            ⚡ Offline-Modus
           </span>
         </div>`;
     }
