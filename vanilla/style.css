@@ -1003,7 +1003,6 @@ select {
   text-align: center;
 }
 
-/* Wird von JS aktiviert */
 .qr-banner.aktiv {
   display: block;
 }
