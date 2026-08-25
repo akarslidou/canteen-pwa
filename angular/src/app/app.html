@@ -1,33 +1,77 @@
+<!-- CAMERA OVERLAY -->
+<div 
+  #cameraOverlay
+  id="cameraOverlay" 
+  style="
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  ">
+  <button 
+    (click)="hardwareService.stopCamera()"
+    style="
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10001;
+    ">
+    ✕
+  </button>
+
+  <video #cameraStream id="cameraStream" autoplay muted playsinline></video>
+
+  <div style="color: white; margin-top: 20px; font-family: sans-serif">
+    Kamera aktiv: QR-Code in den Rahmen halten
+  </div>
+</div>
+
+<div class="dropdown-closer" [class.offen]="inlineDropdownOpen || categoryDropdownOpen || priceDropdownOpen" (click)="closeAllDropdowns()"></div>
+<div class="overlay" [class.offen]="sidebarOpen" (click)="sidebarOpen = false"></div>
+
 <!-- HEADER -->
 <header>
   <button class="menu-btn" (click)="sidebarOpen = true">☰</button>
-
   <div class="header-titles">
-    <div class="canteen-dropdown-container">
-      <div id="headerUniversityTitle">
+    <div class="title-wrapper">
+      <h1 id="headerUniversityTitle">
         <span *ngIf="currentUniKey === 'tuebingen'">Uni Tübingen</span>
         <span *ngIf="currentUniKey === 'uni_stuttgart'">Uni Stuttgart</span>
         <span *ngIf="currentUniKey === 'hohenheim'">Uni Hohenheim</span>
-        <span *ngIf="currentUniKey === 'esslingen'">HS Esslingen</span>
-        <span *ngIf="currentUniKey === 'nuertingen'">HKFL Nürtingen</span>
-        <span *ngIf="currentUniKey === 'karlsruhe'">KIT / HS Karlsruhe</span>
-      </div>
-
-      <button 
-        class="canteen-selector-trigger" 
-        [class.aktiv]="inlineDropdownOpen" 
-        (click)="inlineDropdownOpen = !inlineDropdownOpen">
-        <span id="headerCanteenTitle">{{ selectedCanteen?.name || 'Mensa wählen' }}</span>
-        <span class="dropdown-arrow">▼</span>
-      </button>
-
-      <!-- INLINE DROPDOWN -->
-      <div class="inline-dropdown" [class.offen]="inlineDropdownOpen">
-        <div 
-          *ngFor="let canteen of inlineDropdownCanteens" 
-          class="inline-dropdown-item" 
-          (click)="selectCanteen(canteen)">
-          {{ canteen.name }}
+        <span *ngIf="currentUniKey === 'esslingen'">Hochschule Esslingen</span>
+        <span *ngIf="currentUniKey === 'nuertingen'">Hochschule Nürtingen</span>
+        <span *ngIf="currentUniKey === 'karlsruhe'">KIT / Karlsruhe</span>
+      </h1>
+      <div class="canteen-dropdown-container">
+        <button 
+          class="canteen-selector-trigger" 
+          [class.aktiv]="inlineDropdownOpen"
+          (click)="inlineDropdownOpen = !inlineDropdownOpen">
+          <span>{{ selectedCanteen?.name || 'Mensa wählen' }}</span>
+          <span class="dropdown-arrow">▼</span>
+        </button>
+        <div class="inline-dropdown" [class.offen]="inlineDropdownOpen">
+          <div 
+            *ngFor="let canteen of inlineDropdownCanteens" 
+            class="inline-dropdown-item" 
+            (click)="selectCanteen(canteen)">
+            {{ canteen.name }}
+          </div>
         </div>
       </div>
     </div>
@@ -35,55 +79,71 @@
   <div class="header-spacer"></div>
 </header>
 
-<div class="dropdown-closer" [class.offen]="inlineDropdownOpen" (click)="inlineDropdownOpen = false"></div>
-
-<!-- SIDEBAR OVERLAY -->
-<div class="overlay" [class.offen]="sidebarOpen" (click)="sidebarOpen = false"></div>
-
-<!-- SIDEBAR / EINSTELLUNGEN -->
-<aside class="sidebar" [class.offen]="sidebarOpen">
+<!-- SIDEBAR -->
+<div class="sidebar" [class.offen]="sidebarOpen">
   <div class="sidebar-header">
-    <h3>Einstellungen</h3>
+    <h3>Weiteres</h3>
     <button class="close-btn" (click)="sidebarOpen = false">✕</button>
   </div>
 
-  <div class="settings-box">
-    <div class="sidebar-filter-title">Hochschule / Stadt</div>
-    <select [(ngModel)]="currentUniKey" (change)="selectUniversity(currentUniKey)">
+  <div class="sidebar-section settings-box" style="padding: 15px">
+    <div class="sidebar-filter-title">📍 Region / Universität</div>
+    <select [(ngModel)]="currentUniKey" (change)="selectUniversity(currentUniKey)" style="width: 100%; padding: 8px">
       <option value="tuebingen">Uni Tübingen</option>
       <option value="uni_stuttgart">Uni Stuttgart</option>
       <option value="hohenheim">Uni Hohenheim</option>
-      <option value="esslingen">HS Esslingen</option>
-      <option value="nuertingen">HKFL Nürtingen</option>
-      <option value="karlsruhe">KIT / HS Karlsruhe</option>
+      <option value="esslingen">Hochschule Esslingen</option>
+      <option value="nuertingen">Hochschule Nürtingen</option>
+      <option value="karlsruhe">KIT / Karlsruhe</option>
     </select>
   </div>
 
-  <div class="sidebar-filter-title" style="margin-top: 15px;">Hardware Tests</div>
-  <div class="hw-grid">
-    <button class="hw-btn" (click)="hardwareService.checkCamera()">
-      <span class="hw-icon">📷</span>
-      <span class="hw-label">Kamera / QR</span>
-    </button>
-    <button class="hw-btn" (click)="hardwareService.checkBluetooth()">
-      <span class="hw-icon">📶</span>
-      <span class="hw-label">Bluetooth</span>
-    </button>
-    <button class="hw-btn" (click)="hardwareService.checkGPS()">
-      <span class="hw-icon">📍</span>
-      <span class="hw-label">GPS Standort</span>
-    </button>
-    <button class="hw-btn" (click)="hardwareService.checkNFC()">
-      <span class="hw-icon">🏷️</span>
-      <span class="hw-label">Web NFC</span>
-    </button>
-  </div>
-</aside>
+  <hr style="margin: 5px 0" />
 
-<!-- HAUPTINHALT -->
+  <div class="sidebar-section settings-box" style="padding: 15px">
+    <div class="sidebar-filter-title" style="margin-bottom: 15px; font-weight: bold">
+      🛠 Hardware-Tests
+    </div>
+
+    <div class="hw-grid">
+      <!-- Kamera Button -->
+      <button
+        id="btnCamera"
+        class="hw-btn"
+        (click)="hardwareService.checkCamera()"
+      >
+        <span class="hw-icon">📷</span>
+        <span class="hw-label">Kamera</span>
+      </button>
+
+      <!-- Bluetooth Button -->
+      <button id="btnBluetooth" class="hw-btn" (click)="hardwareService.checkBluetooth()">
+        <span class="hw-icon">🔵</span>
+        <span class="hw-label">Bluetooth</span>
+      </button>
+
+      <!-- GPS Button -->
+      <button id="btnGPS" class="hw-btn" (click)="hardwareService.checkGPS()">
+        <span class="hw-icon">📍</span>
+        <span class="hw-label">GPS</span>
+      </button>
+
+      <!-- NFC Button -->
+      <button id="btnNFC" class="hw-btn" (click)="hardwareService.checkNFC()">
+        <span class="hw-icon">🏷️</span>
+        <span class="hw-label">NFC</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
 <div class="app-container">
   <main class="main-card">
-    
+    <div class="map-link-container">
+      <div class="menu-title">Speiseplan</div>
+    </div>
+
     <!-- TAGES-KARUSSELL -->
     <div class="carousel-wrapper">
       <button class="scroll-arrow" (click)="scrollCarousel(-1)">❮</button>
@@ -102,57 +162,107 @@
       <button class="scroll-arrow" (click)="scrollCarousel(1)">❯</button>
     </div>
 
-    <!-- GEWÄHLTER TAG TITEL -->
-    <h2 class="selected-day-title">{{ getFormattedSelectedDay() }}</h2>
-
-    <!-- PREIS & FILTER STEUERUNG -->
+    <!-- FILTER BAR -->
     <div class="filter-bar">
+      <!-- FLEISCH & ERNÄHRUNG FILTER DROPDOWN -->
       <div class="filter-dropdown-container" [class.offen]="categoryDropdownOpen">
-        <button class="filter-btn" (click)="categoryDropdownOpen = !categoryDropdownOpen">
-          <span>Filter & Preise</span>
+        <button class="filter-btn" (click)="toggleDropdown('category')">
+          <span>Filter</span>
           <span class="filter-arrow">▼</span>
         </button>
-
         <div class="dropdown-content wide-panel">
           <div class="filter-grid-section">
-            <div class="filter-section-title">Preisstufe</div>
+            <div class="filter-section-title">Fleisch</div>
             <div class="filter-options-layout">
               <label class="filter-label">
-                <input type="radio" name="priceGroup" [checked]="activePriceType === 'students'" (change)="activePriceType = 'students'"> Studierende
+                <input type="checkbox" (change)="toggleFilterKeyword('fisch', $event)" [checked]="isKeywordActive('fisch')" class="filter-checkbox"/>
+                <img src="images/icon_fisch.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [F] Fisch
               </label>
               <label class="filter-label">
-                <input type="radio" name="priceGroup" [checked]="activePriceType === 'employees'" (change)="activePriceType = 'employees'"> Bedienstete
+                <input type="checkbox" (change)="toggleFilterKeyword('geflügel', $event)" [checked]="isKeywordActive('geflügel')" class="filter-checkbox"/>
+                <img src="images/icon_gefluegel.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [G] Geflügel
+              </label>
+              <label class="filter-label">
+                <input type="checkbox" (change)="toggleFilterKeyword('kalb', $event)" [checked]="isKeywordActive('kalb')" class="filter-checkbox"/>
+                <img src="images/icon_kalb.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [K] Kalb
+              </label>
+              <label class="filter-label">
+                <input type="checkbox" (change)="toggleFilterKeyword('lamm', $event)" [checked]="isKeywordActive('lamm')" class="filter-checkbox"/>
+                <img src="images/icon_lamm.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [L] Lamm
+              </label>
+              <label class="filter-label">
+                <input type="checkbox" (change)="toggleFilterKeyword('rind', $event)" [checked]="isKeywordActive('rind')" class="filter-checkbox"/>
+                <img src="images/icon_rind.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [R] Rind
+              </label>
+              <label class="filter-label">
+                <input type="checkbox" (change)="toggleFilterKeyword('schwein', $event)" [checked]="isKeywordActive('schwein')" class="filter-checkbox"/>
+                <img src="images/icon_schwein.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [S] Schwein
+              </label>
+              <label class="filter-label">
+                <input type="checkbox" (change)="toggleFilterKeyword('wild', $event)" [checked]="isKeywordActive('wild')" class="filter-checkbox"/>
+                <img src="images/icon_wild.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [W] Wild
               </label>
             </div>
           </div>
 
           <div class="filter-grid-section">
-            <div class="filter-section-title">Ernährung</div>
+            <div class="filter-section-title">Nur anzeigen</div>
             <div class="filter-options-layout">
               <label class="filter-label">
-                <input type="checkbox" (change)="toggleFilterKeyword('vegan', $event)" [checked]="isKeywordActive('vegan')"> Vegan
+                <input type="checkbox" (change)="toggleFilterKeyword('vegetarisch', $event)" [checked]="isKeywordActive('vegetarisch')" class="filter-checkbox"/>
+                <img src="images/icon_vegetarisch.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [V] vegetarisch
               </label>
               <label class="filter-label">
-                <input type="checkbox" (change)="toggleFilterKeyword('vegetarisch', $event)" [checked]="isKeywordActive('vegetarisch')"> Vegetarisch
-              </label>
-              <label class="filter-label">
-                <input type="checkbox" (change)="toggleFilterKeyword('rind', $event)" [checked]="isKeywordActive('rind')"> Rind
-              </label>
-              <label class="filter-label">
-                <input type="checkbox" (change)="toggleFilterKeyword('schwein', $event)" [checked]="isKeywordActive('schwein')"> Schwein
+                <input type="checkbox" (change)="toggleFilterKeyword('vegan', $event)" [checked]="isKeywordActive('vegan')" class="filter-checkbox"/>
+                <img src="images/icon_vegan.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                [vegan] vegan
               </label>
             </div>
           </div>
 
           <div class="filter-actions">
-            <button class="btn-apply-filter" (click)="categoryDropdownOpen = false">Fertig</button>
-            <button class="btn-reset-filter" (click)="resetFilters()">Filter zurücksetzen</button>
+            <button class="btn-apply-filter" (click)="categoryDropdownOpen = false">
+              Filter anwenden →
+            </button>
+            <button class="btn-reset-filter" (click)="resetFilters()">
+              Filter zurücksetzen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREIS FILTER DROPDOWN -->
+      <div class="filter-dropdown-container" [class.offen]="priceDropdownOpen">
+        <button class="filter-btn" (click)="toggleDropdown('price')">
+          <span>Preis</span>
+          <span class="filter-arrow">▼</span>
+        </button>
+        <div class="dropdown-content">
+          <div class="filter-grid-section-plain">
+            <label class="filter-label">
+              <input type="radio" name="priceRadio" value="students" [checked]="activePriceType === 'students'" (change)="activePriceType = 'students'; priceDropdownOpen = false"/>
+              Studierende
+            </label>
+            <label class="filter-label">
+              <input type="radio" name="priceRadio" value="employees" [checked]="activePriceType === 'employees'" (change)="activePriceType = 'employees'; priceDropdownOpen = false"/>
+              Beschäftigte / Gäste
+            </label>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SPEISEPLAN INHALT & STATUS -->
+    <!-- GEWÄHLTER TAG & MENSAPLAN LISTE -->
+    <div class="selected-day-title">{{ getFormattedSelectedDay() }}</div>
+
     <div id="mealsList">
       <!-- SKELETON LOADING -->
       <div *ngIf="isLoading">
@@ -183,7 +293,7 @@
           <div class="gericht-kategorie">{{ meal.category }}</div>
           <div class="gericht-header">
             <div class="gericht-name">
-              <img *ngIf="getIconPath(meal)" [src]="getIconPath(meal)" class="diet-icon">
+              <img *ngIf="getIconPath(meal)" [src]="getIconPath(meal)" class="diet-icon" (error)="$event.target.style.display='none'">
               {{ meal.name }}
             </div>
             <div class="preis-container">
@@ -205,24 +315,128 @@
     </div>
   </main>
 
-  <!-- INFOS & MAP -->
-  <aside class="info-sidebar" *ngIf="selectedCanteen">
-    <div class="main-card">
-      <h2 class="menu-title">{{ selectedCanteen.name }}</h2>
-      <p class="price-info-text"><b>Adresse:</b> {{ selectedCanteen.address }}</p>
-      <p class="price-info-text"><b>Öffnungszeiten:</b> {{ selectedCanteen.hours }}</p>
-      
-      <div id="map" style="border-radius: 8px; margin-top: 15px;"></div>
+  <!-- RIGHT SIDEBAR (INFO & LEGENDE) -->
+  <aside class="info-sidebar">
+    <div class="info-card">
+      <h2>Allgemeine Informationen</h2>
+      <p class="info-sub">
+        Kurzfristige Änderungen in den Speiseplänen sind vorbehalten.
+      </p>
+
+      <div class="alert-box">
+        <div class="alert-icon">i</div>
+        <p>
+          EINE TAGESAKTUELLE KENNZEICHNUNG FÜR ALLERGENE UND ZUSATZSTOFFE
+          FINDET IHR NUR AN DEN AUSGABEBEREICHEN DER MENSEN AUF MONITOREN
+          UND/ODER AUSHÄNGEN.
+        </p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2>Schlüssel</h2>
+      <div class="legend-grid">
+        <div class="legend-item">
+          <img src="icons/icon_fisch.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[F] Fisch</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_gefluegel.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[G] Geflügel</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_kalb.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[K] Kalb</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_lamm.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[L] Lamm</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_rind.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[R] Rind</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_schwein.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[S] Schwein</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_wild.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[W] Wild</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_vegetarisch.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[V] vegetarisch</span>
+        </div>
+        <div class="legend-item">
+          <img src="icons/icon_vegan.png.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <span>[vegan] vegan</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2>Preisinformation für Unimitarbeiter</h2>
+      <p class="price-info-text">
+        Die Essenspreise für Mitarbeiter ergeben sich aus dem Gästepreis
+        abzüglich des Arbeitgeberzuschusses (KAO). Dieser Zuschuss wird nur
+        wirksam, wenn der Preis mindestens 4,60 EUR beträgt; der maximale
+        Zuschuss beträgt 2,70 EUR.
+      </p>
     </div>
   </aside>
 </div>
 
-<!-- HARDWARE OVERLAYS -->
-<div id="cameraOverlay" style="display: none;">
-  <video id="cameraStream" playsinline autoplay muted></video>
-  <button (click)="hardwareService.stopCamera()" style="margin-top: 20px; padding: 10px 20px;">Kamera Schließen</button>
+<!-- CANTEEN MAP & INFO FOOTER BOX -->
+<div class="canteen-info-box" *ngIf="selectedCanteen">
+  <div class="info-container-inner">
+    <div class="info-map-side">
+      <div id="map" style="height: 250px; width: 100%; border-radius: 10px; margin-bottom: 10px;"></div>
+      <button class="btn-map-action" (click)="openMapLocation()">
+        Standort auf Karte zeigen ➔
+      </button>
+    </div>
+
+    <div class="info-text-side">
+      <div class="info-block">
+        <h3>🕒 ÖFFNUNGSZEITEN</h3>
+        <p>{{ selectedCanteen.hours || 'Wird geladen...' }}</p>
+      </div>
+
+      <div class="info-block">
+        <h3>🏠 <span>{{ selectedCanteen.name || 'MENSA' }}</span></h3>
+        <p>{{ selectedCanteen.address || 'Wird geladen...' }}</p>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- FOOTER -->
+<footer class="main-site-footer">
+  <div class="footer-inner">
+    <div class="footer-column">
+      <h4>Projekt-Demo</h4>
+      <p>
+        Entwickelt von: <strong> Karslidou Anastasia </strong><br />
+        Matrikelnummer: 5774078 <br />
+        Studiengang: Medieninformatik B.Sc. <br />
+        Semester: Sommersemester 2026
+      </p>
+    </div>
+    <div class="footer-column">
+      <h4>Kontakt (Entwickler)</h4>
+      <p>
+        <a href="mailto:anastasia.karslidou@student.uni-tuebingen.de">anastasia.karslidou@student.uni-tuebingen.de</a>
+      </p>
+    </div>
+  </div>
+  <div class="footer-copyright">
+    <p>
+      Copyright © 2026 Karslidou. Alle Rechte im Rahmen der Kriterien zur Leistungsbewertung vorbehalten.
+    </p>
+  </div>
+</footer>
+
 <div id="qr-banner" class="qr-banner">
-  <span id="qr-banner-text"></span>
+  <span id="qr-banner-text">Link öffnen</span>
 </div>

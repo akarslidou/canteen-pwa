@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HardwareService } from './services/hardware.service';
@@ -18,16 +18,17 @@ declare const L: any; // Leaflet Global Map Library
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, AfterViewInit {
   // Navigation & Auswahl
   universityCanteens = UNIVERSITY_CANTEENS;
   currentUniKey: string = 'tuebingen';
-  selectedCanteen!: Canteen;
+  selectedCanteen: Canteen = UNIVERSITY_CANTEENS['tuebingen'][0];
 
   // Modals & UI States
   sidebarOpen = false;
   inlineDropdownOpen = false;
   categoryDropdownOpen = false;
+  priceDropdownOpen = false; // <-- ERGÄNZT
   
   // Status-Flags für Speiseplan
   isLoading = false;
@@ -52,14 +53,13 @@ export class AppComponent implements OnInit {
 
   constructor(
     public hardwareService: HardwareService,
-    private canteenService: CanteenService
+    public canteenService: CanteenService
   ) {}
 
   ngOnInit(): void {
-    // Initialisierung
+    // Initiales Laden ohne unendliche Render-Schleife
     this.selectUniversity('tuebingen', false);
 
-    // Online/Offline-Event-Listener
     window.addEventListener('offline', () => {
       this.isOfflineError = true;
     });
@@ -70,12 +70,26 @@ export class AppComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit(): void {
+    // Map erst sicher starten, nachdem das DOM gerendert ist
+    if (this.selectedCanteen) {
+      setTimeout(() => {
+        this.initMap(this.selectedCanteen.lat, this.selectedCanteen.lng, this.selectedCanteen.name);
+      }, 200);
+    }
+  }
+
   // === UNIS & MENSEN AUSWAHL ===
   selectUniversity(uniKey: string, closeMenu = true): void {
     this.currentUniKey = uniKey;
     const canteens = this.universityCanteens[uniKey];
     if (canteens && canteens.length > 0) {
-      this.selectCanteen(canteens[0]);
+      this.selectedCanteen = canteens[0];
+      this.inlineDropdownOpen = false;
+      this.resetMealsAndReload();
+      setTimeout(() => {
+        this.initMap(canteens[0].lat, canteens[0].lng, canteens[0].name);
+      }, 100);
     }
     if (closeMenu) {
       this.sidebarOpen = false;
@@ -86,7 +100,9 @@ export class AppComponent implements OnInit {
     this.selectedCanteen = canteen;
     this.inlineDropdownOpen = false;
     this.resetMealsAndReload();
-    this.initMap(canteen.lat, canteen.lng, canteen.name);
+    setTimeout(() => {
+      this.initMap(canteen.lat, canteen.lng, canteen.name);
+    }, 100);
   }
 
   get inlineDropdownCanteens(): Canteen[] {
@@ -166,6 +182,23 @@ export class AppComponent implements OnInit {
     }
   }
 
+  // === DROPDOWN HANDLING (NEU) ===
+  toggleDropdown(type: 'category' | 'price'): void {
+    if (type === 'category') {
+      this.categoryDropdownOpen = !this.categoryDropdownOpen;
+      this.priceDropdownOpen = false;
+    } else {
+      this.priceDropdownOpen = !this.priceDropdownOpen;
+      this.categoryDropdownOpen = false;
+    }
+  }
+
+  closeAllDropdowns(): void {
+    this.inlineDropdownOpen = false;
+    this.categoryDropdownOpen = false;
+    this.priceDropdownOpen = false;
+  }
+
   // === FILTER & PRÜFUNG ===
   get filteredMeals(): Meal[] {
     if (this.activeFilterKeywords.length === 0) {
@@ -200,6 +233,7 @@ export class AppComponent implements OnInit {
   resetFilters(): void {
     this.activeFilterKeywords = [];
     this.categoryDropdownOpen = false;
+    this.priceDropdownOpen = false;
   }
 
   // === PREIS-BERECHNUNG & DETAILS ===
@@ -293,12 +327,19 @@ export class AppComponent implements OnInit {
     }, 200);
   }
 
+  openMapLocation(): void {
+    if (this.selectedCanteen) {
+      const url = `https://www.openstreetmap.org/?mlat=${this.selectedCanteen.lat}&mlon=${this.selectedCanteen.lng}#map=17/${this.selectedCanteen.lat}/${this.selectedCanteen.lng}`;
+      window.open(url, '_blank');
+    }
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
     if (!target.closest('.filter-dropdown-container')) {
       this.categoryDropdownOpen = false;
+      this.priceDropdownOpen = false;
     }
   }
 }

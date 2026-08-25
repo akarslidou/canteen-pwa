@@ -25,7 +25,7 @@ export interface Meal {
 
 export const API_BASE_URL = 'https://openmensa.org/api/v2/canteens/';
 
-export const STUWE_ICON_BASE = 'assets/images/';
+export const STUWE_ICON_BASE = 'public/icons/';
 
 export const STUWE_ICON_MAP: Record<string, string> = {
   empfehlung: 'icon_empfehlungs_des_kuechenchefs.png.webp',
