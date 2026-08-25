@@ -19,9 +19,12 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
+              "public/favicon.ico",
+              "public/manifest.webmanifest",
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "public/assets",
+                "output": "/assets"
               }
             ],
             "styles": ["src/styles.css"]
