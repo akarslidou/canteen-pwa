@@ -1,569 +1,504 @@
-<!-- CAMERA OVERLAY -->
-<div
-  #cameraOverlay
-  id="cameraOverlay"
-  style="
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 1000;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  "
->
-  <button
-    (click)="hardwareService.stopCamera()"
-    style="
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      font-size: 24px;
-      cursor: pointer;
-      z-index: 10001;
-    "
-  >
-    ✕
-  </button>
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Deine Mensa</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  </head>
 
-  <video #cameraStream id="cameraStream" autoplay muted playsinline></video>
+  <body>
+    <div
+      id="cameraOverlay"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <button
+        onclick="HardwareController.stopCamera()"
+        style="
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          width: 45px;
+          height: 45px;
+          border-radius: 50%;
+          font-size: 24px;
+          cursor: pointer;
+          z-index: 10001;
+        "
+      >
+        ✕
+      </button>
 
-  <div style="color: white; margin-top: 20px; font-family: sans-serif">
-    Kamera aktiv: QR-Code in den Rahmen halten
-  </div>
-</div>
+      <video id="cameraStream" autoplay muted playsinline></video>
 
-<div id="dropdownCloser" class="dropdown-closer" [class.offen]="inlineDropdownOpen || categoryDropdownOpen || priceDropdownOpen" (click)="closeAllDropdowns()"></div>
-<div id="menuOverlay" class="overlay" [class.offen]="sidebarOpen" (click)="sidebarOpen = false"></div>
+      <div style="color: white; margin-top: 20px; font-family: sans-serif">
+        Kamera aktiv: QR-Code in den Rahmen halten
+      </div>
+    </div>
 
-<!-- HEADER -->
-<header>
-  <button class="menu-btn" id="menuOpenTrigger" (click)="sidebarOpen = true">☰</button>
-  <div class="header-titles">
-    <div class="title-wrapper">
-      <h1 id="headerUniversityTitle">
-        <span *ngIf="currentUniKey === 'tuebingen'">Uni Tübingen</span>
-        <span *ngIf="currentUniKey === 'uni_stuttgart'">Uni Stuttgart</span>
-        <span *ngIf="currentUniKey === 'hohenheim'">Uni Hohenheim</span>
-        <span *ngIf="currentUniKey === 'esslingen'">Hochschule Esslingen</span>
-        <span *ngIf="currentUniKey === 'nuertingen'">Hochschule Nürtingen</span>
-        <span *ngIf="currentUniKey === 'karlsruhe'">KIT / Karlsruhe</span>
-      </h1>
-      <div class="canteen-dropdown-container">
-        <button id="headerCanteenTrigger" class="canteen-selector-trigger" (click)="inlineDropdownOpen = !inlineDropdownOpen">
-          <span id="headerCanteenTitle">{{ selectedCanteen?.name || 'Mensa Wilhelmstraße' }}</span>
-          <span class="dropdown-arrow">▼</span>
-        </button>
-        <div id="inlineDropdown" class="inline-dropdown" [class.offen]="inlineDropdownOpen">
-          <div 
-            *ngFor="let canteen of inlineDropdownCanteens" 
-            class="inline-dropdown-item" 
-            (click)="selectCanteen(canteen)">
-            {{ canteen.name }}
+    <div id="dropdownCloser" class="dropdown-closer"></div>
+    <div id="menuOverlay" class="overlay"></div>
+
+    <header>
+      <button class="menu-btn" id="menuOpenTrigger">☰</button>
+      <div class="header-titles">
+        <div class="title-wrapper">
+          <h1 id="headerUniversityTitle">Uni Tübingen</h1>
+          <div class="canteen-dropdown-container">
+            <button id="headerCanteenTrigger" class="canteen-selector-trigger">
+              <span id="headerCanteenTitle">Mensa Wilhelmstraße</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div id="inlineDropdown" class="inline-dropdown"></div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-  <div class="header-spacer"></div>
-</header>
+      <div class="header-spacer"></div>
+    </header>
 
-<!-- SIDEBAR (LEFT NAVIGATION) -->
-<div id="appSidebar" class="sidebar" [class.offen]="sidebarOpen">
-  <div class="sidebar-header">
-    <h3>Weiteres</h3>
-    <button class="close-btn" id="menuCloseTrigger" (click)="sidebarOpen = false">✕</button>
-  </div>
+    <div id="appSidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h3>Weiteres</h3>
+        <button class="close-btn" id="menuCloseTrigger">✕</button>
+      </div>
 
-  <div class="sidebar-section settings-box" style="padding: 15px">
-    <div class="sidebar-filter-title">📍 Region / Universität</div>
-    <select id="citySelect" [(ngModel)]="currentUniKey" (change)="selectUniversity(currentUniKey)" style="width: 100%; padding: 8px">
-      <option value="tuebingen">Uni Tübingen</option>
-      <option value="uni_stuttgart">Uni Stuttgart</option>
-      <option value="hohenheim">Uni Hohenheim</option>
-      <option value="esslingen">Hochschule Esslingen</option>
-      <option value="nuertingen">Hochschule Nürtingen</option>
-      <option value="karlsruhe">KIT / Karlsruhe</option>
-    </select>
-  </div>
+      <div class="sidebar-section settings-box" style="padding: 15px">
+        <div class="sidebar-filter-title">📍 Region / Universität</div>
+        <select id="citySelect" style="width: 100%; padding: 8px">
+          <option value="tuebingen">Uni Tübingen</option>
+          <option value="uni_stuttgart">Uni Stuttgart</option>
+          <option value="hohenheim">Uni Hohenheim</option>
+          <option value="esslingen">Hochschule Esslingen</option>
+          <option value="nuertingen">Hochschule Nürtingen</option>
+          <option value="karlsruhe">KIT / Karlsruhe</option>
+        </select>
+      </div>
 
-  <hr style="margin: 5px 0" />
+      <hr style="margin: 5px 0" />
 
-  <div class="sidebar-section settings-box" style="padding: 15px">
-    <div
-      class="sidebar-filter-title"
-      style="margin-bottom: 15px; font-weight: bold"
-    >
-      🛠 Hardware-Tests
-    </div>
+      <div class="sidebar-section settings-box" style="padding: 15px">
+        <div
+          class="sidebar-filter-title"
+          style="margin-bottom: 15px; font-weight: bold"
+        >
+          🛠 Hardware-Tests
+        </div>
 
-    <div class="hw-grid">
-      <button
-        id="btnCamera"
-        class="hw-btn"
-        (click)="hardwareService.checkCamera(cameraStream, cameraOverlay)"
-      >
-        <span class="hw-icon">📷</span>
-        <span class="hw-label">Kamera</span>
-      </button>
+        <div class="hw-grid">
+          <!-- Camera Button -->
+          <button
+            id="btnCamera"
+            class="hw-btn"
+            onclick="HardwareController.checkCamera()"
+          >
+            <span class="hw-icon">📷</span>
+            <span class="hw-label">Kamera</span>
+          </button>
 
-      <button
-        id="btnBluetooth"
-        class="hw-btn"
-        (click)="hardwareService.checkBluetooth()"
-      >
-        <span class="hw-icon">🔵</span>
-        <span class="hw-label">Bluetooth</span>
-      </button>
+          <!-- Bluetooth Button -->
+          <button
+            id="btnBluetooth"
+            class="hw-btn"
+            onclick="HardwareController.checkBluetooth()"
+          >
+            <span class="hw-icon">🔵</span>
+            <span class="hw-label">Bluetooth</span>
+          </button>
 
-      <button
-        id="btnGPS"
-        class="hw-btn"
-        (click)="hardwareService.checkGPS()"
-      >
-        <span class="hw-icon">📍</span>
-        <span class="hw-label">GPS</span>
-      </button>
+          <!-- GPS Button -->
+          <button
+            id="btnGPS"
+            class="hw-btn"
+            onclick="HardwareController.checkGPS()"
+          >
+            <span class="hw-icon">📍</span>
+            <span class="hw-label">GPS</span>
+          </button>
 
-      <button
-        id="btnNFC"
-        class="hw-btn"
-        (click)="hardwareService.checkNFC()"
-      >
-        <span class="hw-icon">🏷️</span>
-        <span class="hw-label">NFC</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN APP CONTAINER -->
-<div class="app-container">
-  <main class="main-card">
-    <div class="map-link-container">
-      <div class="menu-title">Speiseplan</div>
-    </div>
-
-    <div class="carousel-wrapper">
-      <button class="scroll-arrow" id="carouselPrev" (click)="scrollCarousel(-1)">❮</button>
-      <div class="carousel-view-window">
-        <div id="dayCarousel" #dayCarousel>
-          <button 
-            *ngFor="let day of availableDays" 
-            class="tag-button" 
-            [class.tag-aktiv]="day.date === selectedDate"
-            (click)="selectDate(day.date)">
-            <span class="day-name">{{ getDayName(day.date) }}</span>
-            <span class="day-date">{{ getFormattedDate(day.date) }}</span>
+          <!-- NFC Button -->
+          <button
+            id="btnNFC"
+            class="hw-btn"
+            onclick="HardwareController.checkNFC()"
+          >
+            <span class="hw-icon">🏷️</span>
+            <span class="hw-label">NFC</span>
           </button>
         </div>
       </div>
-      <button class="scroll-arrow" id="carouselNext" (click)="scrollCarousel(1)">❯</button>
     </div>
+    <div class="app-container">
+      <main class="main-card">
+        <div class="map-link-container">
+          <div class="menu-title">Speiseplan</div>
+        </div>
 
-    <div class="filter-bar">
-      <!-- CATEGORY DROPDOWN -->
-      <div class="filter-dropdown-container" id="categoryDropdown" [class.offen]="categoryDropdownOpen">
-        <button
-          class="filter-btn"
-          (click)="toggleDropdown('category')"
-        >
-          <span>Filter</span>
-          <span class="filter-arrow">▼</span>
-        </button>
-        <div class="dropdown-content wide-panel">
-          <div class="filter-grid-section">
-            <div class="filter-section-title">Fleisch</div>
-            <div class="filter-options-layout">
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="fisch"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('fisch', $event)"
-                  [checked]="isKeywordActive('fisch')"
-                />
-                <img
-                  src="images/icon_fisch.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [F] Fisch</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="geflügel"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('geflügel', $event)"
-                  [checked]="isKeywordActive('geflügel')"
-                />
-                <img
-                  src="images/icon_gefluegel.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [G] Geflügel</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="kalb"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('kalb', $event)"
-                  [checked]="isKeywordActive('kalb')"
-                />
-                <img
-                  src="images/icon_kalb.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [K] Kalb</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="lamm"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('lamm', $event)"
-                  [checked]="isKeywordActive('lamm')"
-                />
-                <img
-                  src="images/icon_lamm.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [L] Lamm</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="rind"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('rind', $event)"
-                  [checked]="isKeywordActive('rind')"
-                />
-                <img
-                  src="images/icon_rind.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [R] Rind</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="schwein"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('schwein', $event)"
-                  [checked]="isKeywordActive('schwein')"
-                />
-                <img
-                  src="images/icon_schwein.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [S] Schwein</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="wild"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('wild', $event)"
-                  [checked]="isKeywordActive('wild')"
-                />
-                <img
-                  src="images/icon_wild.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [W] Wild</label
-              >
+        <div class="carousel-wrapper">
+          <button class="scroll-arrow" id="carouselPrev">❮</button>
+          <div class="carousel-view-window">
+            <div id="dayCarousel"></div>
+          </div>
+          <button class="scroll-arrow" id="carouselNext">❯</button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-dropdown-container" id="categoryDropdown">
+            <button
+              class="filter-btn"
+              onclick="toggleDropdown('categoryDropdown')"
+            >
+              <span>Filter</span>
+              <span class="filter-arrow">▼</span>
+            </button>
+            <div class="dropdown-content wide-panel">
+              <div class="filter-grid-section">
+                <div class="filter-section-title">Fleisch</div>
+                <div class="filter-options-layout">
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="fisch"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_fisch.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [F] Fisch</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="geflügel"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_gefluegel.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [G] Geflügel</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="kalb"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_kalb.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [K] Kalb</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="lamm"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_lamm.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [L] Lamm</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="rind"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_rind.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [R] Rind</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="schwein"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_schwein.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [S] Schwein</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="wild"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_wild.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [W] Wild</label
+                  >
+                </div>
+              </div>
+              <div class="filter-grid-section">
+                <div class="filter-section-title">Nur anzeigen</div>
+                <div class="filter-options-layout">
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="vegetarisch"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_vegetarisch.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [V] vegetarisch</label
+                  >
+                  <label class="filter-label"
+                    ><input
+                      type="checkbox"
+                      value="vegan"
+                      class="filter-checkbox"
+                    />
+                    <img
+                      src="images/icon_vegan.png.webp"
+                      class="filter-icon"
+                      alt=""
+                    />
+                    [vegan] vegan</label
+                  >
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button class="btn-apply-filter" onclick="applyFilters()">
+                  Filter anwenden →
+                </button>
+                <button class="btn-reset-filter" onclick="resetFilters()">
+                  Filter zurücksetzen
+                </button>
+              </div>
             </div>
           </div>
-          <div class="filter-grid-section">
-            <div class="filter-section-title">Nur anzeigen</div>
-            <div class="filter-options-layout">
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="vegetarisch"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('vegetarisch', $event)"
-                  [checked]="isKeywordActive('vegetarisch')"
-                />
-                <img
-                  src="images/icon_vegetarisch.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [V] vegetarisch</label
-              >
-              <label class="filter-label"
-                ><input
-                  type="checkbox"
-                  value="vegan"
-                  class="filter-checkbox"
-                  (change)="toggleFilterKeyword('vegan', $event)"
-                  [checked]="isKeywordActive('vegan')"
-                />
-                <img
-                  src="images/icon_vegan.png.webp"
-                  class="filter-icon"
-                  alt=""
-                  (error)="$event.target.style.display='none'"
-                />
-                [vegan] vegan</label
-              >
+
+          <div class="filter-dropdown-container" id="priceDropdown">
+            <button
+              class="filter-btn"
+              onclick="toggleDropdown('priceDropdown')"
+            >
+              <span>Preis</span>
+              <span class="filter-arrow">▼</span>
+            </button>
+            <div class="dropdown-content">
+              <div class="filter-grid-section-plain">
+                <label class="filter-label">
+                  <input
+                    type="radio"
+                    name="priceRadio"
+                    value="students"
+                    checked
+                    onchange="changePriceType('students')"
+                  />
+                  Studierende
+                </label>
+                <label class="filter-label">
+                  <input
+                    type="radio"
+                    name="priceRadio"
+                    value="employees"
+                    onchange="changePriceType('employees')"
+                  />
+                  Beschäftigte / Gäste
+                </label>
+              </div>
             </div>
           </div>
-          <div class="filter-actions">
-            <button class="btn-apply-filter" (click)="categoryDropdownOpen = false">
-              Filter anwenden →
-            </button>
-            <button class="btn-reset-filter" (click)="resetFilters()">
-              Filter zurücksetzen
-            </button>
+        </div>
+
+        <div id="selectedDayTitle" class="selected-day-title"></div>
+        <div id="status"></div>
+        <div id="mealsList"></div>
+      </main>
+
+      <aside class="info-sidebar">
+        <div class="info-card">
+          <h2>Allgemeine Informationen</h2>
+          <p class="info-sub">
+            Kurzfristige Änderungen in den Speiseplänen sind vorbehalten.
+          </p>
+
+          <div class="alert-box">
+            <div class="alert-icon">i</div>
+            <p>
+              EINE TAGESAKTUELLE KENNZEICHNUNG FÜR ALLERGENE UND ZUSATZSTOFFE
+              FINDET IHR NUR AN DEN AUSGABEBEREICHEN DER MENSEN AUF MONITOREN
+              UND/ODER AUSHÄNGEN.
+            </p>
           </div>
         </div>
-      </div>
 
-      <!-- PRICE DROPDOWN -->
-      <div class="filter-dropdown-container" id="priceDropdown" [class.offen]="priceDropdownOpen">
-        <button
-          class="filter-btn"
-          (click)="toggleDropdown('price')"
-        >
-          <span>Preis</span>
-          <span class="filter-arrow">▼</span>
-        </button>
-        <div class="dropdown-content">
-          <div class="filter-grid-section-plain">
-            <label class="filter-label">
-              <input
-                type="radio"
-                name="priceRadio"
-                value="students"
-                [checked]="activePriceType === 'students'"
-                (change)="activePriceType = 'students'; priceDropdownOpen = false"
-              />
-              Studierende
-            </label>
-            <label class="filter-label">
-              <input
-                type="radio"
-                name="priceRadio"
-                value="employees"
-                [checked]="activePriceType === 'employees'"
-                (change)="activePriceType = 'employees'; priceDropdownOpen = false"
-              />
-              Beschäftigte / Gäste
-            </label>
+        <div class="info-card">
+          <h2>Schlüssel</h2>
+          <div class="legend-grid">
+            <div class="legend-item">
+              <img src="images/icon_fisch.png.webp" alt="" />
+              <span>[F] Fisch</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_gefluegel.png.webp" alt="" />
+              <span>[G] Geflügel</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_kalb.png.webp" alt="" />
+              <span>[K] Kalb</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_lamm.png.webp" alt="" />
+              <span>[L] Lamm</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_rind.png.webp" alt="" />
+              <span>[R] Rind</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_schwein.png.webp" alt="" />
+              <span>[S] Schwein</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_wild.png.webp" alt="" />
+              <span>[W] Wild</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_vegetarisch.png.webp" alt="" />
+              <span>[V] vegetarisch</span>
+            </div>
+            <div class="legend-item">
+              <img src="images/icon_vegan.png.webp" alt="" />
+              <span>[vegan] vegan</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <h2>Preisinformation für Unimitarbeiter</h2>
+          <p class="price-info-text">
+            Die Essenspreise für Mitarbeiter ergeben sich aus dem Gästepreis
+            abzüglich des Arbeitgeberzuschusses (KAO). Dieser Zuschuss wird nur
+            wirksam, wenn der Preis mindestens 4,60 EUR beträgt; der maximale
+            Zuschuss beträgt 2,70 EUR.
+          </p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="canteen-info-box">
+      <div class="info-container-inner">
+        <div class="info-map-side">
+          <div
+            id="map"
+            style="
+              height: 250px;
+              width: 100%;
+              border-radius: 10px;
+              margin-bottom: 10px;
+            "
+          ></div>
+          <button id="infoMapButton" class="btn-map-action" onclick="">
+            Standort auf Karte zeigen ➔
+          </button>
+        </div>
+
+        <div class="info-text-side">
+          <div class="info-block">
+            <h3>🕒 ÖFFNUNGSZEITEN</h3>
+            <p id="infoHours">Wird geladen...</p>
+          </div>
+
+          <div class="info-block">
+            <h3>🏠 <span id="infoCanteenName">MENSA</span></h3>
+            <p id="infoAddress">Wird geladen...</p>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="selectedDayTitle" class="selected-day-title">{{ getFormattedSelectedDay() }}</div>
-    
-    <div id="status">
-      <div *ngIf="isLoading" class="skeleton-wrapper">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
-
-      <div *ngIf="!isLoading && isClosed" style="text-align: center; padding: 20px;">
-        <h3>Mensa Geschlossen ❌</h3>
-      </div>
-
-      <div *ngIf="!isLoading && hasNoData" style="text-align: center; padding: 20px;">
-        <h3>Keine Speisen verfügbar</h3>
-      </div>
-
-      <div *ngIf="!isLoading && isOfflineError && meals.length === 0" style="text-align: center; padding: 20px;">
-        <h3>⚠️ Sie sind offline</h3>
-      </div>
-    </div>
-
-    <!-- MEALS LIST -->
-    <div id="mealsList" *ngIf="!isLoading && !isClosed && !hasNoData">
-      <div *ngFor="let meal of filteredMeals" class="gericht-karte">
-        <div class="gericht-kategorie">{{ meal.category }}</div>
-        <div class="gericht-header">
-          <div class="gericht-name">
-            <img *ngIf="getIconPath(meal)" [src]="getIconPath(meal)" class="diet-icon" (error)="$event.target.style.display='none'">
-            {{ meal.name }}
-          </div>
-          <div class="preis-container">
-            <div class="gericht-preis">{{ getMealPrice(meal) }}</div>
-            <button 
-              *ngIf="getCleanNotes(meal).length > 0" 
-              class="toggle-details-btn" 
-              [class.offen]="expandedNotes[meal.id]"
-              (click)="toggleMealNote(meal.id)">
-              ▼
-            </button>
-          </div>
+    <footer class="main-site-footer">
+      <div class="footer-inner">
+        <div class="footer-column">
+          <h4>Projekt-Demo</h4>
+          <p>
+            Entwickelt von: <strong> Karslidou Anastasia </strong><br />
+            Matrikelnummer: 5774078 <br />
+            Studiengang: Medieninformatik B.Sc. <br />
+            Semester: Sommersemester 2026
+          </p>
         </div>
-        <div class="meal-notes" [class.offen]="expandedNotes[meal.id]" *ngIf="getCleanNotes(meal).length > 0">
-          <div class="notes-line"><b>Zusatzstoffe:</b> {{ getCleanNotes(meal).join(', ') }}</div>
+        <div class="footer-column">
+          <h4>Kontakt (Entwickler)</h4>
+          <p>
+            <a href="mailto:anastasia.karslidou@student.uni-tuebingen.de"
+              >anastasia.karslidou@student.uni-tuebingen.de</a
+            >
+          </p>
         </div>
       </div>
-    </div>
-  </main>
-
-  <!-- HERE IS THE RIGHT SIDEBAR YOU WERE LOOKING FOR -->
-  <aside class="info-sidebar">
-    <div class="info-card">
-      <h2>Allgemeine Informationen</h2>
-      <p class="info-sub">
-        Kurzfristige Änderungen in den Speiseplänen sind vorbehalten.
-      </p>
-
-      <div class="alert-box">
-        <div class="alert-icon">i</div>
+      <div class="footer-copyright">
         <p>
-          EINE TAGESAKTUELLE KENNZEICHNUNG FÜR ALLERGENE UND ZUSATZSTOFFE
-          FINDET IHR NUR AN DEN AUSGABEBEREICHEN DER MENSEN AUF MONITOREN
-          UND/ODER AUSHÄNGEN.
+          Copyright © 2026 Karslidou. Alle Rechte im Rahmen der Kriterien zur
+          Leistungsbewertung vorbehalten.
         </p>
       </div>
-    </div>
+    </footer>
 
-    <div class="info-card">
-      <h2>Schlüssel</h2>
-      <div class="legend-grid">
-        <div class="legend-item">
-          <img src="images/icon_fisch.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[F] Fisch</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_gefluegel.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[G] Geflügel</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_kalb.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[K] Kalb</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_lamm.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[L] Lamm</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_rind.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[R] Rind</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_schwein.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[S] Schwein</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_wild.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[W] Wild</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_vegetarisch.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[V] vegetarisch</span>
-        </div>
-        <div class="legend-item">
-          <img src="images/icon_vegan.png.webp" alt="" (error)="$event.target.style.display='none'"/>
-          <span>[vegan] vegan</span>
-        </div>
-      </div>
-    </div>
+    <script src="app.js"></script>
 
-    <div class="info-card">
-      <h2>Preisinformation für Unimitarbeiter</h2>
-      <p class="price-info-text">
-        Die Essenspreise für Mitarbeiter ergeben sich aus dem Gästepreis
-        abzüglich des Arbeitgeberzuschusses (KAO). Dieser Zuschuss wird nur
-        wirksam, wenn der Preis mindestens 4,60 EUR beträgt; der maximale
-        Zuschuss beträgt 2,70 EUR.
-      </p>
-    </div>
-  </aside>
-</div>
-
-<!-- CANTEEN MAP & INFO FOOTER BOX -->
-<div class="canteen-info-box" *ngIf="selectedCanteen">
-  <div class="info-container-inner">
-    <div class="info-map-side">
-      <div
-        id="map"
-        style="
-          height: 250px;
-          width: 100%;
-          border-radius: 10px;
-          margin-bottom: 10px;
-        "
-      ></div>
-      <button id="infoMapButton" class="btn-map-action" (click)="openMapLocation()">
-        Standort auf Karte zeigen ➔
-      </button>
-    </div>
-
-    <div class="info-text-side">
-      <div class="info-block">
-        <h3>🕒 ÖFFNUNGSZEITEN</h3>
-        <p id="infoHours">{{ selectedCanteen.hours || 'Wird geladen...' }}</p>
-      </div>
-
-      <div class="info-block">
-        <h3>🏠 <span id="infoCanteenName">{{ selectedCanteen.name || 'MENSA' }}</span></h3>
-        <p id="infoAddress">{{ selectedCanteen.address || 'Wird geladen...' }}</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer class="main-site-footer">
-  <div class="footer-inner">
-    <div class="footer-column">
-      <h4>Projekt-Demo</h4>
-      <p>
-        Entwickelt von: <strong> Karslidou Anastasia </strong><br />
-        Matrikelnummer: 5774078 <br />
-        Studiengang: Medieninformatik B.Sc. <br />
-        Semester: Sommersemester 2026
-      </p>
-    </div>
-    <div class="footer-column">
-      <h4>Kontakt (Entwickler)</h4>
-      <p>
-        <a href="mailto:anastasia.karslidou@student.uni-tuebingen.de"
-          >anastasia.karslidou@student.uni-tuebingen.de</a
-        >
-      </p>
-    </div>
-  </div>
-  <div class="footer-copyright">
-    <p>
-      Copyright © 2026 Karslidou. Alle Rechte im Rahmen der Kriterien zur
-      Leistungsbewertung vorbehalten.
-    </p>
-  </div>
-</footer>
-
-<div id="qr-banner" class="qr-banner">
-  <span id="qr-banner-text">Link öffnen</span>
-</div>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .then((reg) =>
+              console.log("Service Worker registered successfully!", reg),
+            )
+            .catch((err) =>
+              console.error("Service Worker registration failed:", err),
+            );
+        });
+      }
+    </script>
+  </body>
+</html>
