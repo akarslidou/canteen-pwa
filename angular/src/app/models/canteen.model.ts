@@ -25,19 +25,19 @@ export interface Meal {
 
 export const API_BASE_URL = 'https://openmensa.org/api/v2/canteens/';
 
-export const STUWE_ICON_BASE = 'public/icons/';
+export const STUWE_ICON_BASE = 'icons/';
 
 export const STUWE_ICON_MAP: Record<string, string> = {
-  empfehlung: 'icon_empfehlungs_des_kuechenchefs.png.webp',
-  fisch: 'icon_fisch.png.webp',
-  geflügel: 'icon_gefluegel.png.webp',
-  kalb: 'icon_kalb.png.webp',
-  lamm: 'icon_lamm.png.webp',
-  rind: 'icon_rind.png.webp',
-  schwein: 'icon_schwein.png.webp',
-  vegan: 'icon_vegan.png.webp',
-  vegetarisch: 'icon_vegetarisch.png.webp',
-  wild: 'icon_wild.png.webp',
+  empfehlung: 'icon_empfehlungs_des_kuechenchefs.webp',
+  fisch: 'icon_fisch.webp',
+  geflügel: 'icon_gefluegel.webp',
+  kalb: 'icon_kalb.webp',
+  lamm: 'icon_lamm.webp',
+  rind: 'icon_rind.webp',
+  schwein: 'icon_schwein.webp',
+  vegan: 'icon_vegan.webp',
+  vegetarisch: 'icon_vegetarisch.webp',
+  wild: 'icon_wild.webp',
 };
 
 export const UNIVERSITY_CANTEENS: Record<string, Canteen[]> = {

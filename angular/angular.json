@@ -24,8 +24,8 @@
               "public/manifest.webmanifest",
               {
                 "glob": "**/*",
-                "input": "public/assets",
-                "output": "/assets"
+                "input": "public/icons",
+                "output": "/icons"
               }
             ],
             "styles": ["src/styles.css"]

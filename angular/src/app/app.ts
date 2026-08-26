@@ -1,4 +1,13 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ElementRef,
+  ViewChild,
+  HostListener,
+  ChangeDetectorRef,
+  NgZone
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HardwareService } from './services/hardware.service';
@@ -9,7 +18,7 @@ import {
   UNIVERSITY_CANTEENS,
 } from './models/canteen.model';
 
-declare const L: any; // Leaflet Global Map Library
+declare const L: any;
 
 @Component({
   selector: 'app-root',
@@ -19,59 +28,58 @@ declare const L: any; // Leaflet Global Map Library
   styleUrl: './app.css',
 })
 export class AppComponent implements OnInit, AfterViewInit {
-  // Navigation & Auswahl
   universityCanteens = UNIVERSITY_CANTEENS;
   currentUniKey: string = 'tuebingen';
   selectedCanteen: Canteen = UNIVERSITY_CANTEENS['tuebingen'][0];
 
-  // Modals & UI States
   sidebarOpen = false;
   inlineDropdownOpen = false;
   categoryDropdownOpen = false;
-  priceDropdownOpen = false; // <-- ERGÄNZT
-  
-  // Status-Flags für Speiseplan
+  priceDropdownOpen = false;
+
   isLoading = false;
   isClosed = false;
   isOfflineError = false;
   hasNoData = false;
 
-  // Datum & Gerichte
   availableDays: DaySchedule[] = [];
   selectedDate: string = '';
   meals: Meal[] = [];
-  
-  // Filter & Preise
+
   activePriceType: 'students' | 'employees' | 'others' = 'students';
   activeFilterKeywords: string[] = [];
   expandedNotes: Record<string, boolean> = {};
 
-  // Scroll Container für Tages-Karussell
   @ViewChild('dayCarousel') dayCarousel!: ElementRef<HTMLDivElement>;
 
   private map: any = null;
 
   constructor(
     public hardwareService: HardwareService,
-    public canteenService: CanteenService
+    public canteenService: CanteenService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
-    // Initiales Laden ohne unendliche Render-Schleife
     this.selectUniversity('tuebingen', false);
 
     window.addEventListener('offline', () => {
-      this.isOfflineError = true;
+      this.ngZone.run(() => {
+        this.isOfflineError = true;
+        this.cdr.detectChanges();
+      });
     });
 
     window.addEventListener('online', () => {
-      this.isOfflineError = false;
-      this.loadMealsForDate(this.selectedDate);
+      this.ngZone.run(() => {
+        this.isOfflineError = false;
+        this.loadMealsForDate(this.selectedDate);
+      });
     });
   }
 
   ngAfterViewInit(): void {
-    // Map erst sicher starten, nachdem das DOM gerendert ist
     if (this.selectedCanteen) {
       setTimeout(() => {
         this.initMap(this.selectedCanteen.lat, this.selectedCanteen.lng, this.selectedCanteen.name);
@@ -79,7 +87,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // === UNIS & MENSEN AUSWAHL ===
+  // === MENSEN & UNIVERSITÄTEN ===
   selectUniversity(uniKey: string, closeMenu = true): void {
     this.currentUniKey = uniKey;
     const canteens = this.universityCanteens[uniKey];
@@ -110,36 +118,53 @@ export class AppComponent implements OnInit, AfterViewInit {
     return list.filter((c) => c.id !== this.selectedCanteen?.id);
   }
 
-  // === MENSAPLAN & DATEN LADEN ===
+  // === DATEN LADEN & RENDERN WIE IN APP.JS ===
   async resetMealsAndReload(): Promise<void> {
-    this.meals = [];
-    this.isClosed = false;
-    this.isOfflineError = false;
-    this.hasNoData = false;
+    this.ngZone.run(() => {
+      this.meals = [];
+      this.isClosed = false;
+      this.isOfflineError = false;
+      this.hasNoData = false;
+      this.isLoading = true;
+      this.cdr.detectChanges();
+    });
 
     if (!this.selectedCanteen) return;
 
-    this.availableDays = await this.canteenService.fetchAvailableDays(
-      this.selectedCanteen.id
-    );
+    try {
+      const days = await this.canteenService.fetchAvailableDays(this.selectedCanteen.id);
+      
+      this.ngZone.run(() => {
+        this.availableDays = days || [];
+        if (
+          !this.selectedDate ||
+          !this.availableDays.some((d) => d.date === this.selectedDate)
+        ) {
+          this.selectedDate = this.availableDays[0]?.date || '';
+        }
+        this.cdr.detectChanges();
+      });
 
-    if (
-      !this.selectedDate ||
-      !this.availableDays.some((d) => d.date === this.selectedDate)
-    ) {
-      this.selectedDate = this.availableDays[0]?.date || '';
+      if (this.selectedDate) {
+        await this.loadMealsForDate(this.selectedDate);
+      }
+
+      this.canteenService.prefetchUpcomingDays(
+        this.selectedCanteen.id,
+        this.availableDays,
+        this.selectedDate
+      );
+    } catch (e) {
+      this.ngZone.run(() => {
+        this.isLoading = false;
+        this.hasNoData = true;
+        this.cdr.detectChanges();
+      });
     }
-
-    await this.loadMealsForDate(this.selectedDate);
-    this.canteenService.prefetchUpcomingDays(
-      this.selectedCanteen.id,
-      this.availableDays,
-      this.selectedDate
-    );
   }
 
   async selectDate(date: string): Promise<void> {
-    if (this.selectedDate === date) return;
+    if (this.selectedDate === date && this.meals.length > 0) return;
     this.selectedDate = date;
     await this.loadMealsForDate(date);
   }
@@ -147,42 +172,54 @@ export class AppComponent implements OnInit, AfterViewInit {
   async loadMealsForDate(date: string): Promise<void> {
     if (!date || !this.selectedCanteen) return;
 
-    this.isLoading = true;
-    this.isClosed = false;
-    this.isOfflineError = false;
-    this.hasNoData = false;
+    this.ngZone.run(() => {
+      this.isLoading = true;
+      this.isClosed = false;
+      this.isOfflineError = false;
+      this.hasNoData = false;
+      this.meals = [];
+      this.cdr.detectChanges();
+    });
 
     try {
-      this.meals = await this.canteenService.fetchMealsForDate(
+      const fetchedMeals = await this.canteenService.fetchMealsForDate(
         this.selectedCanteen.id,
         date
       );
 
-      if (!navigator.onLine) {
-        this.isOfflineError = true;
-      }
+      this.ngZone.run(() => {
+        this.meals = fetchedMeals || [];
 
-      if (!this.meals || this.meals.length === 0) {
-        const dayMeta = this.availableDays.find((d) => d.date === date);
-        if (dayMeta && dayMeta.closed) {
-          this.isClosed = true;
+        if (!navigator.onLine) {
+          this.isOfflineError = true;
+        }
+
+        if (this.meals.length === 0) {
+          const dayMeta = this.availableDays.find((d) => d.date === date);
+          if (dayMeta && dayMeta.closed) {
+            this.isClosed = true;
+          } else {
+            this.hasNoData = true;
+          }
+        }
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      });
+    } catch {
+      this.ngZone.run(() => {
+        this.meals = [];
+        if (!navigator.onLine) {
+          this.isOfflineError = true;
         } else {
           this.hasNoData = true;
         }
-      }
-    } catch {
-      this.meals = [];
-      if (!navigator.onLine) {
-        this.isOfflineError = true;
-      } else {
-        this.hasNoData = true;
-      }
-    } finally {
-      this.isLoading = false;
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      });
     }
   }
 
-  // === DROPDOWN HANDLING (NEU) ===
+  // === FILTER & PREISE ===
   toggleDropdown(type: 'category' | 'price'): void {
     if (type === 'category') {
       this.categoryDropdownOpen = !this.categoryDropdownOpen;
@@ -199,7 +236,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.priceDropdownOpen = false;
   }
 
-  // === FILTER & PRÜFUNG ===
   get filteredMeals(): Meal[] {
     if (this.activeFilterKeywords.length === 0) {
       return this.meals;
@@ -236,16 +272,13 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.priceDropdownOpen = false;
   }
 
-  // === PREIS-BERECHNUNG & DETAILS ===
   getMealPrice(meal: Meal): string {
     let priceVal: number | null = null;
-
     if (this.activePriceType === 'students') {
       priceVal = meal.prices?.students;
     } else {
       priceVal = meal.prices?.employees || meal.prices?.others || meal.prices?.pupils;
     }
-
     return priceVal ? `${priceVal.toFixed(2).replace('.', ',')} €` : 'N/A';
   }
 
@@ -264,7 +297,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     return this.canteenService.getStuweIconPath(meal);
   }
 
-  // === KARUSSELL & UI NAVIGATION ===
   scrollCarousel(direction: number): void {
     const container = this.dayCarousel?.nativeElement;
     if (!container) return;
@@ -304,7 +336,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     return this.selectedDate;
   }
 
-  // === LEAFLET MAP ===
   private initMap(lat: number, lng: number, name: string): void {
     if (typeof L === 'undefined') return;
 
