@@ -22,9 +22,10 @@
       "updateMode": "prefetch",
       "resources": {
         "files": [
+          "/favicon.ico",
+          "/manifest.webmanifest",
           "/assets/**",
-          "/icons/**",
-          "/*.(svg|png|jpg|jpeg|webp)"
+          "/icons/**"
         ]
       }
     }

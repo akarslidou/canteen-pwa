@@ -176,37 +176,37 @@
             <div class="filter-options-layout">
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('fisch', $event)" [checked]="isKeywordActive('fisch')" class="filter-checkbox"/>
-                <img src="public/icons/icon_fisch.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_fisch.webp" class="filter-icon" alt=""/>
                 [F] Fisch
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('geflügel', $event)" [checked]="isKeywordActive('geflügel')" class="filter-checkbox"/>
-                <img src="public/icons/icon_gefluegel.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_gefluegel.webp" class="filter-icon" alt=""/>
                 [G] Geflügel
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('kalb', $event)" [checked]="isKeywordActive('kalb')" class="filter-checkbox"/>
-                <img src="public/icons/icon_kalb.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_kalb.webp" class="filter-icon" alt=""/>
                 [K] Kalb
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('lamm', $event)" [checked]="isKeywordActive('lamm')" class="filter-checkbox"/>
-                <img src="public/icons/icon_lamm.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_lamm.webp" class="filter-icon" alt=""/>
                 [L] Lamm
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('rind', $event)" [checked]="isKeywordActive('rind')" class="filter-checkbox"/>
-                <img src="public/icons/icon_rind.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_rind.webp" class="filter-icon" alt=""/>
                 [R] Rind
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('schwein', $event)" [checked]="isKeywordActive('schwein')" class="filter-checkbox"/>
-                <img src="public/icons/icon_schwein.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_schwein.webp" class="filter-icon" alt=""/>
                 [S] Schwein
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('wild', $event)" [checked]="isKeywordActive('wild')" class="filter-checkbox"/>
-                <img src="public/icons/icon_wild.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_wild.webp" class="filter-icon" alt=""/>
                 [W] Wild
               </label>
             </div>
@@ -217,12 +217,12 @@
             <div class="filter-options-layout">
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('vegetarisch', $event)" [checked]="isKeywordActive('vegetarisch')" class="filter-checkbox"/>
-                <img src="public/icons/icon_vegetarisch.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_vegetarisch.webp" class="filter-icon" alt=""/>
                 [V] vegetarisch
               </label>
               <label class="filter-label">
                 <input type="checkbox" (change)="toggleFilterKeyword('vegan', $event)" [checked]="isKeywordActive('vegan')" class="filter-checkbox"/>
-                <img src="public/icons/icon_vegan.png.webp" class="filter-icon" alt="" (error)="$event.target.style.display='none'"/>
+                <img src="assets/icons/icon_vegan.webp" class="filter-icon" alt=""/>
                 [vegan] vegan
               </label>
             </div>
@@ -293,7 +293,7 @@
           <div class="gericht-kategorie">{{ meal.category }}</div>
           <div class="gericht-header">
             <div class="gericht-name">
-              <img *ngIf="getIconPath(meal)" [src]="getIconPath(meal)" class="diet-icon" (error)="$event.target.style.display='none'">
+              <img *ngIf="getIconPath(meal)" [src]="getIconPath(meal)" class="diet-icon">
               {{ meal.name }}
             </div>
             <div class="preis-container">
@@ -337,39 +337,39 @@
       <h2>Schlüssel</h2>
       <div class="legend-grid">
         <div class="legend-item">
-          <img src="public/icons/icon_fisch.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_fisch.webp" alt="Fisch"/>
           <span>[F] Fisch</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_gefluegel.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_gefluegel.webp" alt="Geflügel" />
           <span>[G] Geflügel</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_kalb.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_kalb.webp" alt="Kalb"/>
           <span>[K] Kalb</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_lamm.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_lamm.webp" alt="Lamm"/>
           <span>[L] Lamm</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_rind.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_rind.webp" alt="Rind"/>
           <span>[R] Rind</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_schwein.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_schwein.webp" alt="Schwein"/>
           <span>[S] Schwein</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_wild.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_wild.webp" alt="Wild"/>
           <span>[W] Wild</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_vegetarisch.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_vegetarisch.webp" alt="Vegetarisch"/>
           <span>[V] vegetarisch</span>
         </div>
         <div class="legend-item">
-          <img src="public/icons/icon_vegan.webp" alt="" (error)="$event.target.style.display='none'"/>
+          <img src="assets/icons/icon_vegan.webp" alt="Vegan"/>
           <span>[vegan] vegan</span>
         </div>
       </div>
