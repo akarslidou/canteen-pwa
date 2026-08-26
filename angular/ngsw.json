@@ -1,0 +1,56 @@
+{
+  "configVersion": 1,
+  "timestamp": 1787728086843,
+  "index": "/canteen-pwa/angular/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/canteen-pwa/angular/index.html",
+        "/canteen-pwa/angular/main-RPCA2WKM.js",
+        "/canteen-pwa/angular/styles-POFD2TCE.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [],
+  "hashTable": {
+    "/canteen-pwa/angular/index.html": "6ef724c08204c69b5598edf2a5d7a1558bd18f21",
+    "/canteen-pwa/angular/main-RPCA2WKM.js": "90e2c4ec91c1514b4b2cfd2673ce8a3284d03d81",
+    "/canteen-pwa/angular/styles-POFD2TCE.css": "77605317bbdc52ea994f4e76640a4d6407dba785"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}
