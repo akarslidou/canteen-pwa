@@ -297,6 +297,16 @@ export class AppComponent implements OnInit, AfterViewInit {
     return this.canteenService.getStuweIconPath(meal);
   }
 
+  getLegendIconPath(category: string): string | null {
+  return this.getIconPath({
+    id: 0,
+    name: category,
+    category: category,
+    notes: [category],
+    prices: {}
+  } as Meal);
+}
+
   scrollCarousel(direction: number): void {
     const container = this.dayCarousel?.nativeElement;
     if (!container) return;
