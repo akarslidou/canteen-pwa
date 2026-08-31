@@ -8,8 +8,9 @@
 
 * {
   box-sizing: border-box;
-  font-family:
-    "Futura", "Futura-Medium", "Century Gothic", "Avant Garde", sans-serif;
+  /* System-Font Stack (Sans-Serif): Modern, performant & 100% offline */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -26,11 +27,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Universelle Serif-Systemschriftarten für Titel/Akzente */
 #headerUniversityTitle,
 #headerCanteenTitle,
 .inline-dropdown-item,
 .menu-title {
-  font-family: "PT Serif", "Georgia", serif;
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
   font-style: italic;
 }
 
@@ -219,7 +221,7 @@ header {
   margin-top: 4px;
   margin-bottom: 24px;
   position: relative;
-  z-index: 110;
+  z-index: 160;
 }
 .filter-dropdown-container {
   position: relative;
@@ -263,7 +265,7 @@ header {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   display: none;
   padding: 14px;
-  z-index: 120;
+  z-index: 170;
 }
 .filter-dropdown-container.offen .dropdown-content {
   display: block;
@@ -372,8 +374,8 @@ header {
   display: none;
 }
 #dayCarousel {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .tag-button {
@@ -529,7 +531,7 @@ header {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding-right: 40px; /* Prevent text overlap with price */
+  padding-right: 40px;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -748,7 +750,7 @@ select {
 
 /* 9. INFO-BOX */
 .canteen-info-box {
-  background-color: #8cdcb4; /* Official STUWE mint green */
+  background-color: #8cdcb4;
   color: #1a1a1a;
   padding: 40px 20px;
   margin-top: 50px;
@@ -776,7 +778,7 @@ select {
 #map {
   height: 250px;
   width: 100%;
-  z-index: 1; /* Avoid overlapping active layers */
+  z-index: 1;
 }
 
 /* Image container styling */
@@ -794,7 +796,7 @@ select {
 .map-static-img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Crop and maintain ratio */
+  object-fit: cover;
 }
 
 .btn-map-action {
@@ -820,7 +822,7 @@ select {
 }
 
 .btn-map-action:active {
-  transform: translateY(1px); /* Press effect */
+  transform: translateY(1px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
@@ -906,8 +908,8 @@ select {
 /* --- HARDWARE CONTROLLER LIST --- */
 .hw-grid {
   display: flex;
-  flex-direction: column; /* Stack vertically */
-  gap: 10px; /* Spacing */
+  flex-direction: column;
+  gap: 10px;
 }
 
 .hw-btn {
@@ -916,7 +918,7 @@ select {
   border-radius: 8px;
   padding: 12px;
   display: flex;
-  align-items: center; /* Center vertically */
+  align-items: center;
   gap: 15px;
   cursor: pointer;
   transition: all 0.2s var(--SMOOTH-CURVE);
@@ -996,7 +998,6 @@ select {
   color: white;
   padding: 14px 24px;
   border-radius: 30px;
-  font-family: system-ui, -apple-system, sans-serif;
   font-weight: bold;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   cursor: pointer;
@@ -1019,4 +1020,14 @@ select {
   0% { opacity: 0.6; }
   50% { opacity: 0.3; }
   100% { opacity: 0.6; }
+}
+
+/* Erlaubt Interaktivität für Filter-Boxen und Formular-Elemente */
+input[type="checkbox"],
+input[type="radio"],
+.filter-label,
+.filter-btn {
+  user-select: auto;
+  -webkit-user-select: auto;
+  pointer-events: auto;
 }
