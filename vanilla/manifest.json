@@ -1,7 +1,6 @@
 {
   "name": "Mensa PWA Tübingen",
   "short_name": "Mensa PWA",
-  "description": "Mensaplan für die Uni Tübingen als Progressive Web App",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8fafc",
