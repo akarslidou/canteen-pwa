@@ -804,14 +804,13 @@ async function loadMealsForDate(date) {
     const url = new URL(`${canteenId}/days/${date}/meals`, API_BASE_URL);
     const res = await fetch(url);
 
-    // If HTTP status is not OK (e.g. 404 No Data for this date)
     if (!res.ok) {
       meals = [];
       const dayMeta = availableDays.find((d) => d.date === date);
       if (dayMeta && dayMeta.closed) {
         isClosed = true;
       } else {
-        hasNoData = true; // Show "Kein Speiseplan verfügbar" instead of offline warning
+        hasNoData = true;
       }
       return;
     }
@@ -962,7 +961,6 @@ function renderStatus() {
 
   if (isLoading) {
     nodes.statusDiv.innerHTML = "";
-    // Erzeugt 3 pulsierende Platzhalter-Karten als Feedback
     nodes.mealsList.innerHTML = `
       <div class="skeleton-card"></div>
       <div class="skeleton-card"></div>
