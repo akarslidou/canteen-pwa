@@ -22,7 +22,7 @@ const ASSETS_TO_CACHE = [
 
 // Precache static assets and activate immediately
 self.addEventListener("install", (event) => {
-  self.skipWaiting(); // Force the waiting service worker to become active
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("Service Worker: Caching core assets...");
